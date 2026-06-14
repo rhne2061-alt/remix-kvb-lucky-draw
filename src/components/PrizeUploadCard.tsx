@@ -64,25 +64,26 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         quality: kind === "thumb" ? 0.88 : 0.92,
       });
 
-      try {
-        const cloudUrl = await uploadPrizeImageToStorage(dataUrl, prize.id, kind);
-        if (kind === "thumb") {
-          onUpload(cloudUrl);
-        } else {
-          onUploadLarge(cloudUrl);
-        }
-      } catch {
-        if (kind === "thumb") {
-          onUpload(dataUrl);
-        } else {
-          onUploadLarge(dataUrl);
-        }
+      if (kind === "thumb") {
+        onUpload(dataUrl);
+      } else {
+        onUploadLarge(dataUrl);
       }
+      setUploading(null);
+
+      uploadPrizeImageToStorage(dataUrl, prize.id, kind)
+        .then((cloudUrl) => {
+          if (kind === "thumb") {
+            onUpload(cloudUrl);
+          } else {
+            onUploadLarge(cloudUrl);
+          }
+        })
+        .catch(() => {});
     } catch {
       const msg = lang === "zh" ? "图片处理失败，请换一张图片重试" : "Gagal memproses gambar. Coba lagi.";
       setLocalError(msg);
       onUploadError(msg);
-    } finally {
       setUploading(null);
     }
   };
