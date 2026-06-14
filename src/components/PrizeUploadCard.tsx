@@ -1,5 +1,5 @@
-import React, { useRef } from "react";
-import { Undo2, Redo2 } from "lucide-react";
+import React, { useState } from "react";
+import { Undo2, Redo2, Upload } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
 import { compressImageFileToDataUrl, validateImageUploadFile } from "../utils/images";
@@ -29,28 +29,24 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
   onUploadError,
   onUploadClear,
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (inputRef.current) inputRef.current.value = "";
+    e.target.value = "";
     if (!file) return;
+
+    onUploadClear();
 
     const validation = validateImageUploadFile(file, {
       maxFileSizeBytes: 2 * 1024 * 1024,
     });
-
     if (!validation.ok) {
-      onUploadError(
-        lang === "zh"
-          ? (validation.error ?? "图片无效")
-          : "File tidak valid. Gunakan PNG/JPG/WEBP.",
-      );
+      onUploadError(validation.error ?? "Invalid file");
       return;
     }
 
-    onUploadClear();
-
+    setUploading(true);
     try {
       const dataUrl = await compressImageFileToDataUrl(file, {
         maxSize: 200,
@@ -59,27 +55,25 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
       });
       onUpload(dataUrl);
     } catch {
-      onUploadError(
-        lang === "zh"
-          ? "图片处理失败，请重试"
-          : "Gagal memproses gambar. Coba lagi.",
-      );
+      onUploadError(lang === "zh" ? "处理失败" : "Gagal memproses");
+    } finally {
+      setUploading(false);
     }
   };
 
   return (
-    <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/30 flex flex-col items-center gap-3 relative overflow-hidden text-center group">
+    <div className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/30 flex flex-col items-center gap-3 text-center">
       <span
         className="text-[10px] px-2 py-0.5 rounded font-bold uppercase"
         style={{ backgroundColor: `${prize.color}20`, color: prize.color }}
       >
         {lang === "zh" ? prize.levelZh : prize.level}
       </span>
-      <span className="text-zinc-300 font-bold text-[10px]">
+      <span className="text-zinc-300 font-bold text-[10px] leading-tight">
         {lang === "zh" ? prize.labelZh : prize.label}
       </span>
 
-      <div className="w-16 h-16 border-2 border-dashed border-zinc-700 rounded flex items-center justify-center overflow-hidden bg-black/40 mt-1">
+      <div className="w-16 h-16 border-2 border-dashed border-zinc-700 rounded flex items-center justify-center overflow-hidden bg-black/40">
         <PrizeGraphic
           prizeId={prize.id}
           imageUrl={prize.imageUrl}
@@ -88,57 +82,47 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         />
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+      <label className="relative w-full cursor-pointer">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={handleChange}
+          disabled={uploading}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+        <span className="block text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg font-semibold transition-colors">
+          <Upload className="h-3 w-3 inline mr-1" />
+          {uploading
+            ? "..."
+            : lang === "zh"
+              ? "上传图片"
+              : "Unggah File"}
+        </span>
+      </label>
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        className="text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg cursor-pointer w-full mt-2 font-semibold transition-colors truncate block text-center"
-      >
-        {lang === "zh" ? "⬆️ 浏览并上传" : "⬆️ Unggah File"}
-      </button>
-
-      <div className="w-full grid grid-cols-2 gap-2 mt-2">
+      <div className="w-full grid grid-cols-2 gap-2 mt-1">
         <button
           disabled={!canUndo}
           onClick={onUndo}
-          className={`text-[9px] px-2 py-1 rounded border transition-colors ${
-            canUndo
-              ? "text-slate-200 hover:text-white hover:bg-slate-700 border-slate-600 bg-slate-800/40"
-              : "text-slate-500 border-zinc-800 bg-zinc-900/30 cursor-not-allowed"
-          }`}
+          className={`text-[9px] px-2 py-1 rounded border transition-colors ${canUndo ? "text-slate-200 hover:text-white hover:bg-slate-700 border-slate-600 bg-slate-800/40" : "text-slate-500 border-zinc-800 bg-zinc-900/30 cursor-not-allowed"}`}
         >
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <Undo2 className="h-3.5 w-3.5" />
-            {lang === "zh" ? "撤销" : "Undo"}
-          </span>
+          <Undo2 className="h-3 w-3 inline mr-0.5" />
+          {lang === "zh" ? "撤销" : "Undo"}
         </button>
         <button
           disabled={!canRedo}
           onClick={onRedo}
-          className={`text-[9px] px-2 py-1 rounded border transition-colors ${
-            canRedo
-              ? "text-slate-200 hover:text-white hover:bg-slate-700 border-slate-600 bg-slate-800/40"
-              : "text-slate-500 border-zinc-800 bg-zinc-900/30 cursor-not-allowed"
-          }`}
+          className={`text-[9px] px-2 py-1 rounded border transition-colors ${canRedo ? "text-slate-200 hover:text-white hover:bg-slate-700 border-slate-600 bg-slate-800/40" : "text-slate-500 border-zinc-800 bg-zinc-900/30 cursor-not-allowed"}`}
         >
-          <span className="inline-flex items-center justify-center gap-1.5">
-            <Redo2 className="h-3.5 w-3.5" />
-            {lang === "zh" ? "重做" : "Redo"}
-          </span>
+          <Redo2 className="h-3 w-3 inline mr-0.5" />
+          {lang === "zh" ? "重做" : "Redo"}
         </button>
       </div>
 
       {prize.customImageBase64 && (
         <button
           onClick={onClear}
-          className="text-[9px] text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-500/20 bg-rose-500/10 px-2 py-1 rounded w-full mt-1 transition-colors"
+          className="text-[9px] text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-500/20 bg-rose-500/10 px-2 py-1 rounded w-full transition-colors"
         >
           {lang === "zh" ? "清除图片" : "Hapus Gambar"}
         </button>

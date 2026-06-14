@@ -60,24 +60,12 @@ export function PrizeGraphic({
   style = {},
   emphasize = false,
 }: PrizeGraphicProps) {
-  const displayImageSrc = useMemo(() => {
-    const src = customImageBase64 || imageUrl;
-    return src;
-  }, [customImageBase64, imageUrl]);
+  const displayImageSrc = useMemo(
+    () => customImageBase64 || imageUrl,
+    [customImageBase64, imageUrl],
+  );
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const isFailed = !!displayImageSrc && failedSrc === displayImageSrc;
-  const hasImage = !!(displayImageSrc && !isFailed);
-
-  if (!hasImage && displayImageSrc) {
-    console.warn(
-      `[PrizeGraphic] ⚠️ Image failed to load for ${prizeId} (src starts with: ${displayImageSrc.substring(0, 50)}...)`
-    );
-  }
-  if (hasImage) {
-    console.log(
-      `[PrizeGraphic] ✅ Rendering image for ${prizeId} (src len: ${displayImageSrc.length})`
-    );
-  }
   const frameClass = emphasize
     ? "prize-frame animate-prize-pulse"
     : "prize-frame";

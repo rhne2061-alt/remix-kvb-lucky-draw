@@ -243,16 +243,13 @@ export default function SecurityConsole({
     }
 
     try {
-      console.log('[upload] Starting compression, file:', params.file.name, params.file.size, params.file.type);
       const dataUrl = await compressImageFileToDataUrl(
         params.file,
         params.compression,
       );
-      console.log('[upload] Compression done, dataUrl length:', dataUrl?.length, 'prefix:', dataUrl?.substring(0, 60));
       setUploadFeedback(null);
       params.onSuccess(dataUrl);
-    } catch (err) {
-      console.error('[upload] Compression failed:', err);
+    } catch {
       setUploadFeedback({
         type: "error",
         message:
