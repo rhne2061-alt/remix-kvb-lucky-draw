@@ -34,6 +34,7 @@ import { TRANSLATIONS, GET_APPSCRIPT_TEMPLATE } from "../translations";
 import {
   compressImageFileToDataUrl,
   validateImageUploadFile,
+  readFileAsDataUrl,
 } from "../utils/images";
 
 interface SecurityConsoleProps {
@@ -1090,23 +1091,23 @@ export default function SecurityConsole({
                   <label className="relative inline-flex text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500 px-4 py-2 rounded-lg cursor-pointer font-bold transition-colors">
                     <input
                       type="file"
-                      accept="image/png,image/jpeg,image/webp"
+                      accept="image/*"
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         e.target.value = "";
                         if (!file) return;
-                        void handleImageUpload({
-                          file,
-                          maxFileSizeBytes: 20 * 1024 * 1024,
-                          compression: {
-                            maxWidth: 3840,
-                            maxHeight: 2160,
-                            mimeType: "image/webp",
-                            quality: 0.95,
-                          },
-                          onSuccess: (dataUrl) => onUpdateCustomBg?.(dataUrl),
-                        });
+                        void (async () => {
+                          setBgUploadError(null);
+                          const validation = validateImageUploadFile(file, { maxFileSizeBytes: 30 * 1024 * 1024, allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/avif", "image/bmp"] });
+                          if (!validation.ok) { setBgUploadError(validation.error ?? "Invalid"); return; }
+                          try {
+                            const dataUrl = await readFileAsDataUrl(file);
+                            onUpdateCustomBg?.(dataUrl);
+                          } catch {
+                            setBgUploadError(lang === "zh" ? "图片读取失败" : "Gagal membaca gambar");
+                          }
+                        })();
                       }}
                     />
                     {lang === "zh" ? "⬆️ 浏览并上传背景" : "⬆️ Unggah Background"}
@@ -1153,6 +1154,11 @@ export default function SecurityConsole({
                   )}
                 </div>
               </div>
+              {bgUploadError && (
+                <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2 mt-1">
+                  {bgUploadError}
+                </p>
+              )}
               <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center realtive">
                 {customBg ? (
                   <img src={customBg} alt="background preview" className="w-full h-full object-cover opacity-80" />
