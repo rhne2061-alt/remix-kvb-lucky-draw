@@ -3,14 +3,15 @@ import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
 import { compressImageFileToDataUrl, validateImageUploadFile } from "../utils/images";
+import { uploadPrizeImageToStorage } from "../firebaseStorage";
 
 interface PrizeUploadCardProps {
   prize: Prize;
   lang?: "zh" | "id";
   canUndo: boolean;
   canRedo: boolean;
-  onUpload: (base64: string) => void;
-  onUploadLarge: (base64: string) => void;
+  onUpload: (urlOrBase64: string) => void;
+  onUploadLarge: (urlOrBase64: string) => void;
   onUndo: () => void;
   onRedo: () => void;
   onClear: () => void;
@@ -62,10 +63,20 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         mimeType: "image/webp",
         quality: kind === "thumb" ? 0.88 : 0.92,
       });
-      if (kind === "thumb") {
-        onUpload(dataUrl);
-      } else {
-        onUploadLarge(dataUrl);
+
+      try {
+        const cloudUrl = await uploadPrizeImageToStorage(dataUrl, prize.id, kind);
+        if (kind === "thumb") {
+          onUpload(cloudUrl);
+        } else {
+          onUploadLarge(cloudUrl);
+        }
+      } catch {
+        if (kind === "thumb") {
+          onUpload(dataUrl);
+        } else {
+          onUploadLarge(dataUrl);
+        }
       }
     } catch {
       const msg = lang === "zh" ? "图片处理失败，请换一张图片重试" : "Gagal memproses gambar. Coba lagi.";
@@ -108,7 +119,7 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         <span className="block text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg font-semibold transition-colors">
           <Upload className="h-3 w-3 inline mr-1" />
           {uploading === "thumb"
-            ? "..."
+            ? "Uploading..."
             : lang === "zh"
               ? "展示图(九宫格)"
               : "Gambar Thumbnail"}
@@ -126,7 +137,7 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         <span className="block text-[10px] bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-400 px-3 py-1.5 rounded-lg font-semibold transition-colors">
           <ImagePlus className="h-3 w-3 inline mr-1" />
           {uploading === "large"
-            ? "..."
+            ? "Uploading..."
             : lang === "zh"
               ? "中奖大图(弹窗)"
               : "Gambar Menang (Popup)"}

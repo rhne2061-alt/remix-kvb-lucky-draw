@@ -348,8 +348,11 @@ export default function App() {
           const merged = data.prizes.map((firebasePrize: Prize) => {
             const local = prev.find((lp: Prize) => lp.id === firebasePrize.id);
             const restored = { ...firebasePrize };
-            if (local?.customImageBase64) {
+            if (local?.customImageBase64 && !firebasePrize.customImageBase64) {
               restored.customImageBase64 = local.customImageBase64;
+            }
+            if (local?.customImageLargeBase64 && !firebasePrize.customImageLargeBase64) {
+              restored.customImageLargeBase64 = local.customImageLargeBase64;
             }
             return restored;
           });
@@ -489,8 +492,7 @@ export default function App() {
       localStorage.setItem("kvb_prizes_v3", currentStr);
       if (isFirebaseLoaded && currentStr !== lastCloudDocs.current.prizes) {
         lastCloudDocs.current.prizes = currentStr;
-        const cleanPrizes = prizes.map(({ customImageBase64, ...rest }) => rest);
-        saveGlobalSettings({ prizes: cleanPrizes });
+        saveGlobalSettings({ prizes });
       }
     } catch (e) {
       console.warn("Storage quota exceeded", e);

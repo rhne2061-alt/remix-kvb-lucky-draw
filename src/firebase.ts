@@ -6,12 +6,13 @@ import { Prize, RiskConfig, SecurityMetric, GoogleSheetsConfig, DrawResult } fro
 import { INITIAL_PRIZES } from './data';
 
 const app = initializeApp(firebaseConfig);
+export { app };
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId as string);
 export const auth = getAuth(app);
 
 export const shouldEnableFirebase = (): boolean => {
   try {
-    return import.meta.env.VITE_ENABLE_FIREBASE === "true";
+    return import.meta.env.VITE_ENABLE_FIREBASE === "true" || import.meta.env.PROD;
   } catch {
     return false;
   }
