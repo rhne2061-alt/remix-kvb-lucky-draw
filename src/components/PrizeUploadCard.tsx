@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Undo2, Redo2, Upload } from "lucide-react";
+import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
 import { compressImageFileToDataUrl, validateImageUploadFile } from "../utils/images";
@@ -10,9 +10,11 @@ interface PrizeUploadCardProps {
   canUndo: boolean;
   canRedo: boolean;
   onUpload: (base64: string) => void;
+  onUploadLarge: (base64: string) => void;
   onUndo: () => void;
   onRedo: () => void;
   onClear: () => void;
+  onClearLarge: () => void;
   onUploadError: (msg: string) => void;
   onUploadClear: () => void;
 }
@@ -23,41 +25,54 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
   canUndo,
   canRedo,
   onUpload,
+  onUploadLarge,
   onUndo,
   onRedo,
   onClear,
+  onClearLarge,
   onUploadError,
   onUploadClear,
 }) => {
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading] = useState<"thumb" | "large" | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  const handleChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = (kind: "thumb" | "large") => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
 
     onUploadClear();
+    setLocalError(null);
 
     const validation = validateImageUploadFile(file, {
-      maxFileSizeBytes: 2 * 1024 * 1024,
+      maxFileSizeBytes: 10 * 1024 * 1024,
     });
     if (!validation.ok) {
-      onUploadError(validation.error ?? "Invalid file");
+      const msg = validation.error ?? "Invalid file";
+      setLocalError(msg);
+      onUploadError(msg);
       return;
     }
 
-    setUploading(true);
+    setUploading(kind);
     try {
+      const maxSize = kind === "thumb" ? 256 : 1024;
       const dataUrl = await compressImageFileToDataUrl(file, {
-        maxSize: 200,
+        maxSize,
         mimeType: "image/webp",
-        quality: 0.9,
+        quality: kind === "thumb" ? 0.88 : 0.92,
       });
-      onUpload(dataUrl);
+      if (kind === "thumb") {
+        onUpload(dataUrl);
+      } else {
+        onUploadLarge(dataUrl);
+      }
     } catch {
-      onUploadError(lang === "zh" ? "处理失败" : "Gagal memproses");
+      const msg = lang === "zh" ? "图片处理失败，请换一张图片重试" : "Gagal memproses gambar. Coba lagi.";
+      setLocalError(msg);
+      onUploadError(msg);
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   };
 
@@ -86,19 +101,54 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp"
-          onChange={handleChange}
-          disabled={uploading}
+          onChange={handleUpload("thumb")}
+          disabled={uploading !== null}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
         <span className="block text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg font-semibold transition-colors">
           <Upload className="h-3 w-3 inline mr-1" />
-          {uploading
+          {uploading === "thumb"
             ? "..."
             : lang === "zh"
-              ? "上传图片"
-              : "Unggah File"}
+              ? "展示图(九宫格)"
+              : "Gambar Thumbnail"}
         </span>
       </label>
+
+      <label className="relative w-full cursor-pointer">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={handleUpload("large")}
+          disabled={uploading !== null}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+        <span className="block text-[10px] bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-400 px-3 py-1.5 rounded-lg font-semibold transition-colors">
+          <ImagePlus className="h-3 w-3 inline mr-1" />
+          {uploading === "large"
+            ? "..."
+            : lang === "zh"
+              ? "中奖大图(弹窗)"
+              : "Gambar Menang (Popup)"}
+        </span>
+      </label>
+
+      {prize.customImageLargeBase64 && (
+        <div className="w-full flex justify-center">
+          <button
+            onClick={onClearLarge}
+            className="text-[9px] text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-500/20 bg-rose-500/10 px-2 py-1 rounded transition-colors"
+          >
+            {lang === "zh" ? "清除中奖大图" : "Hapus Gambar Menang"}
+          </button>
+        </div>
+      )}
+
+      {localError && (
+        <div className="w-full text-[10px] leading-relaxed text-rose-300 bg-rose-500/10 border border-rose-500/25 rounded-lg px-2.5 py-2">
+          {localError}
+        </div>
+      )}
 
       <div className="w-full grid grid-cols-2 gap-2 mt-1">
         <button
@@ -124,7 +174,7 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
           onClick={onClear}
           className="text-[9px] text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-500/20 bg-rose-500/10 px-2 py-1 rounded w-full transition-colors"
         >
-          {lang === "zh" ? "清除图片" : "Hapus Gambar"}
+          {lang === "zh" ? "清除展示图" : "Hapus Gambar Thumbnail"}
         </button>
       )}
     </div>

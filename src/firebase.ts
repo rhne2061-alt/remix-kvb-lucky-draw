@@ -9,6 +9,14 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId as string);
 export const auth = getAuth(app);
 
+export const shouldEnableFirebase = (): boolean => {
+  try {
+    return import.meta.env.VITE_ENABLE_FIREBASE === "true";
+  } catch {
+    return false;
+  }
+};
+
 // auth.signInAnonymously Not used
 
 export enum OperationType {
@@ -31,6 +39,7 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  if (!shouldEnableFirebase()) return;
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -41,11 +50,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  // throw new Error(JSON.stringify(errInfo));
 }
 
 // Global settings snapshot listener
 export const subscribeToGlobalSettings = (callback: (data: any) => void) => {
+  if (!shouldEnableFirebase()) {
+    return () => {};
+  }
   const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (docSnap) => {
     if (docSnap.exists()) {
       callback(docSnap.data());
@@ -58,6 +69,7 @@ export const subscribeToGlobalSettings = (callback: (data: any) => void) => {
 
 // Update global settings
 export const saveGlobalSettings = async (data: any) => {
+  if (!shouldEnableFirebase()) return;
   try {
     await setDoc(doc(db, 'settings', 'global'), data, { merge: true });
   } catch (err) {
@@ -67,10 +79,12 @@ export const saveGlobalSettings = async (data: any) => {
 
 // Draws tracking
 export const subscribeToDraws = (callback: (draws: DrawResult[]) => void) => {
+  if (!shouldEnableFirebase()) {
+    return () => {};
+  }
   const unsubscribe = onSnapshot(collection(db, 'draws'), (snap) => {
     const arr: DrawResult[] = [];
     snap.forEach((d) => arr.push(d.data() as DrawResult));
-    // Sort descending by id since timestamp string varies
     arr.sort((a,b) => b.id.localeCompare(a.id));
     callback(arr);
   }, (err) => {
@@ -80,10 +94,10 @@ export const subscribeToDraws = (callback: (draws: DrawResult[]) => void) => {
 };
 
 export const saveDraw = async (draw: DrawResult) => {
+  if (!shouldEnableFirebase()) return;
   try {
     await setDoc(doc(db, 'draws', draw.id), draw);
   } catch (err) {
     handleFirestoreError(err, OperationType.CREATE, 'draws');
   }
 };
-

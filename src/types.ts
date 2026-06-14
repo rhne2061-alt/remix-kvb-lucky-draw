@@ -5,7 +5,8 @@ export interface Prize {
   label: string; // Full Indo description
   labelZh: string; // Full Chinese description
   iconName: string; // lucide icon name
-  customImageBase64?: string; // base64 uploaded image
+  customImageBase64?: string; // base64 uploaded image (thumbnail for grid)
+  customImageLargeBase64?: string; // base64 uploaded image (high-res for win reveal)
   baseProbability: number; // base mathematical probability (e.g. 0.0002 for 5g gold)
   initialStock: number;
   currentStock: number;

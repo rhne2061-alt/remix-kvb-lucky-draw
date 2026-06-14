@@ -737,6 +737,14 @@ export default function App() {
     );
   };
 
+  const handleUpdatePrizeLargeImage = (prizeId: string, base64: string) => {
+    setPrizes((prev) =>
+      prev.map((p) =>
+        p.id !== prizeId ? p : { ...p, customImageLargeBase64: base64 },
+      ),
+    );
+  };
+
   const handleUndoPrizeImage = (prizeId: string) => {
     setPrizes((prev) => {
       const entry = prizeImageHistoryRef.current[prizeId];
@@ -1287,6 +1295,7 @@ export default function App() {
             onUpdateRiskConfig={handleUpdateRiskConfig}
             onUpdatePrizeStock={handleUpdatePrizeStock}
             onUpdatePrizeImage={handleUpdatePrizeImage}
+            onUpdatePrizeLargeImage={handleUpdatePrizeLargeImage}
             onUpdateCustomBg={handleUpdateCustomBg}
             onUndoCustomBg={handleUndoCustomBg}
             onRedoCustomBg={handleRedoCustomBg}
@@ -1404,7 +1413,7 @@ export default function App() {
                 <PrizeGraphic
                   prizeId={lastWinAlert.prize.id}
                   imageUrl={lastWinAlert.prize.imageUrl}
-                  customImageBase64={lastWinAlert.prize.customImageBase64}
+                  customImageBase64={lastWinAlert.prize.customImageLargeBase64 || lastWinAlert.prize.customImageBase64}
                   className="relative z-10 h-[280px] w-[280px]"
                   emphasize
                 />

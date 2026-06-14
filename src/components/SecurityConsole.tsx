@@ -44,6 +44,7 @@ interface SecurityConsoleProps {
   onUpdateRiskConfig: (newConfig: Partial<RiskConfig>) => void;
   onUpdatePrizeStock: (prizeId: string, newStock: number) => void;
   onUpdatePrizeImage?: (prizeId: string, base64: string) => void;
+  onUpdatePrizeLargeImage?: (prizeId: string, base64: string) => void;
   onUndoPrizeImage?: (prizeId: string) => void;
   onRedoPrizeImage?: (prizeId: string) => void;
   canUndoPrizeImage?: (prizeId: string) => boolean;
@@ -84,6 +85,7 @@ export default function SecurityConsole({
   onUpdateRiskConfig,
   onUpdatePrizeStock,
   onUpdatePrizeImage,
+  onUpdatePrizeLargeImage,
   onUndoPrizeImage,
   onRedoPrizeImage,
   canUndoPrizeImage,
@@ -188,6 +190,8 @@ export default function SecurityConsole({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [bgUploadError, setBgUploadError] = useState<string | null>(null);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [uploadFeedback, setUploadFeedback] = useState<{
     type: "error";
     message: string;
@@ -1258,9 +1262,11 @@ export default function SecurityConsole({
                   canUndo={canUndoPrizeImage?.(p.id) ?? false}
                   canRedo={canRedoPrizeImage?.(p.id) ?? false}
                   onUpload={(base64) => onUpdatePrizeImage?.(p.id, base64)}
+                  onUploadLarge={(base64) => onUpdatePrizeLargeImage?.(p.id, base64)}
                   onUndo={() => onUndoPrizeImage?.(p.id)}
                   onRedo={() => onRedoPrizeImage?.(p.id)}
                   onClear={() => onUpdatePrizeImage?.(p.id, "")}
+                  onClearLarge={() => onUpdatePrizeLargeImage?.(p.id, "")}
                   onUploadError={(msg) =>
                     setUploadFeedback({ type: "error", message: msg })
                   }
