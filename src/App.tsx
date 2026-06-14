@@ -84,6 +84,17 @@ const maskCode = (code: string) => {
   return trimmed + "XX";
 };
 
+const stripBase64FromPrize = (p: Prize): Prize => {
+  const cleaned = { ...p };
+  if (cleaned.customImageBase64?.startsWith("data:")) {
+    cleaned.customImageBase64 = undefined;
+  }
+  if (cleaned.customImageLargeBase64?.startsWith("data:")) {
+    cleaned.customImageLargeBase64 = undefined;
+  }
+  return cleaned;
+};
+
 export default function App() {
   // Symmetrical Multi-language State
   const lang = "id" as "zh" | "id";
@@ -348,12 +359,13 @@ export default function App() {
           const merged = data.prizes.map((firebasePrize: Prize) => {
             const local = prev.find((lp: Prize) => lp.id === firebasePrize.id);
             const restored = { ...firebasePrize };
-            if (local?.customImageBase64 && !firebasePrize.customImageBase64) {
-              restored.customImageBase64 = local.customImageBase64;
-            }
-            if (local?.customImageLargeBase64 && !firebasePrize.customImageLargeBase64) {
-              restored.customImageLargeBase64 = local.customImageLargeBase64;
-            }
+            const mergeImg = (cloudVal: string | undefined, localVal: string | undefined) => {
+              if (!cloudVal && localVal) return localVal;
+              if (cloudVal?.startsWith("data:") && localVal?.startsWith("https://")) return localVal;
+              return cloudVal || localVal || undefined;
+            };
+            restored.customImageBase64 = mergeImg(firebasePrize.customImageBase64, local?.customImageBase64);
+            restored.customImageLargeBase64 = mergeImg(firebasePrize.customImageLargeBase64, local?.customImageLargeBase64);
             return restored;
           });
           return merged;
@@ -492,7 +504,8 @@ export default function App() {
       localStorage.setItem("kvb_prizes_v3", currentStr);
       if (isFirebaseLoaded && currentStr !== lastCloudDocs.current.prizes) {
         lastCloudDocs.current.prizes = currentStr;
-        saveGlobalSettings({ prizes });
+        const firestorePrizes = prizes.map(stripBase64FromPrize);
+        saveGlobalSettings({ prizes: firestorePrizes });
       }
     } catch (e) {
       console.warn("Storage quota exceeded", e);
