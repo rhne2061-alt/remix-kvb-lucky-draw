@@ -343,7 +343,17 @@ export default function App() {
     const unsubGlobal = subscribeToGlobalSettings((data) => {
       if (data.prizes) {
         lastCloudDocs.current.prizes = JSON.stringify(data.prizes);
-        setPrizes(prev => JSON.stringify(prev) === JSON.stringify(data.prizes) ? prev : data.prizes);
+        setPrizes(prev => {
+          if (JSON.stringify(prev) === JSON.stringify(data.prizes)) return prev;
+          const merged = data.prizes.map((firebasePrize: Prize) => {
+            const local = prev.find((lp: Prize) => lp.id === firebasePrize.id);
+            if (local?.customImageBase64 && !firebasePrize.customImageBase64) {
+              return { ...firebasePrize, customImageBase64: local.customImageBase64 };
+            }
+            return firebasePrize;
+          });
+          return merged;
+        });
       }
       if (data.riskConfig) {
         lastCloudDocs.current.riskConfig = JSON.stringify(data.riskConfig);
@@ -363,13 +373,17 @@ export default function App() {
       }
       if (data.customBg !== undefined) {
         lastCloudDocs.current.customBg = data.customBg;
-        setCustomBgRaw((prev) => (prev === data.customBg ? prev : data.customBg));
+        setCustomBgRaw((prev) => {
+          if (prev && !data.customBg) return prev;
+          return prev === data.customBg ? prev : data.customBg;
+        });
       }
       if (data.customLogo !== undefined) {
         lastCloudDocs.current.customLogo = data.customLogo;
-        setCustomLogoRaw((prev) =>
-          prev === data.customLogo ? prev : data.customLogo,
-        );
+        setCustomLogoRaw((prev) => {
+          if (prev && !data.customLogo) return prev;
+          return prev === data.customLogo ? prev : data.customLogo;
+        });
       }
       setIsFirebaseLoaded(true);
     });
@@ -1102,7 +1116,7 @@ export default function App() {
         <div
           className="absolute inset-0 w-full h-full"
           style={{
-            backgroundImage: customBg ? `url(${customBg})` : `url(/bg.png)`,
+            backgroundImage: customBg ? `url(${customBg})` : "none",
             backgroundSize: "cover",
             backgroundPosition: "center center",
             backgroundRepeat: "no-repeat",
