@@ -1083,31 +1083,30 @@ export default function SecurityConsole({
                   {lang === "zh" ? "上传高清晰度的背景图片以强化视觉冲击感。" : "Unggah gambar latar belakang resolusi tinggi untuk efek visual yang menarik."}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-4">
-                  <label htmlFor="upload-bg-input" className="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500 px-4 py-2 rounded-lg cursor-pointer font-bold transition-colors">
+                  <label className="relative inline-flex text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500 px-4 py-2 rounded-lg cursor-pointer font-bold transition-colors">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        void handleImageUpload({
+                          file,
+                          maxFileSizeBytes: 5 * 1024 * 1024,
+                          compression: {
+                            maxWidth: 1920,
+                            maxHeight: 1080,
+                            mimeType: "image/webp",
+                            quality: 0.7,
+                          },
+                          onSuccess: (dataUrl) => onUpdateCustomBg?.(dataUrl),
+                        });
+                      }}
+                    />
                     {lang === "zh" ? "⬆️ 浏览并上传背景" : "⬆️ Unggah Background"}
                   </label>
-                  <input
-                    id="upload-bg-input"
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = "";
-                      if (!file) return;
-                      void handleImageUpload({
-                        file,
-                        maxFileSizeBytes: 5 * 1024 * 1024,
-                        compression: {
-                          maxWidth: 1920,
-                          maxHeight: 1080,
-                          mimeType: "image/webp",
-                          quality: 0.7,
-                        },
-                        onSuccess: (dataUrl) => onUpdateCustomBg?.(dataUrl),
-                      });
-                    }}
-                  />
                   {onUndoCustomBg && (
                     <button
                       disabled={!canUndoCustomBg}
@@ -1171,31 +1170,30 @@ export default function SecurityConsole({
                   {lang === "zh" ? "上传您的专属 Logo 以替换顶部的默认标志。建议上传透明背景的 PNG 格式。" : "Unggah logo eksklusif Anda untuk menggantikan logo bawaan di bagian atas. Format PNG transparan disarankan."}
                 </p>
                 <div className="flex flex-wrap gap-2 mt-4">
-                  <label htmlFor="upload-logo-input" className="text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500 px-4 py-2 rounded-lg cursor-pointer font-bold transition-colors">
+                  <label className="relative inline-flex text-xs bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500 px-4 py-2 rounded-lg cursor-pointer font-bold transition-colors">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        void handleImageUpload({
+                          file,
+                          maxFileSizeBytes: 2 * 1024 * 1024,
+                          compression: {
+                            maxWidth: 600,
+                            maxHeight: 200,
+                            mimeType: "image/webp",
+                            quality: 0.9,
+                          },
+                          onSuccess: (dataUrl) => onUpdateCustomLogo?.(dataUrl),
+                        });
+                      }}
+                    />
                     {lang === "zh" ? "⬆️ 浏览并上传 Logo" : "⬆️ Unggah Logo"}
                   </label>
-                  <input
-                    id="upload-logo-input"
-                    type="file"
-                    accept="image/png, image/jpeg, image/webp"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      e.target.value = "";
-                      if (!file) return;
-                      void handleImageUpload({
-                        file,
-                        maxFileSizeBytes: 2 * 1024 * 1024,
-                        compression: {
-                          maxWidth: 600,
-                          maxHeight: 200,
-                          mimeType: "image/webp",
-                          quality: 0.9,
-                        },
-                        onSuccess: (dataUrl) => onUpdateCustomLogo?.(dataUrl),
-                      });
-                    }}
-                  />
                   {onUndoCustomLogo && (
                     <button
                       disabled={!canUndoCustomLogo}
