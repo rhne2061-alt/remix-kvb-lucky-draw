@@ -1,0 +1,8 @@
+{
+  "name": "Remix: KVB Lucky Draw Risk Control Hub",
+  "description": "An interactive Indonesian Roda Keberuntungan with built-in Operations Security Locks, Stock Cap, Time-slot Release, and Anti-Fraud systems.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
