@@ -1098,12 +1098,12 @@ export default function SecurityConsole({
                         if (!file) return;
                         void handleImageUpload({
                           file,
-                          maxFileSizeBytes: 5 * 1024 * 1024,
+                          maxFileSizeBytes: 20 * 1024 * 1024,
                           compression: {
-                            maxWidth: 1920,
-                            maxHeight: 1080,
+                            maxWidth: 3840,
+                            maxHeight: 2160,
                             mimeType: "image/webp",
-                            quality: 0.7,
+                            quality: 0.95,
                           },
                           onSuccess: (dataUrl) => onUpdateCustomBg?.(dataUrl),
                         });
