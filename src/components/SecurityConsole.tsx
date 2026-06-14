@@ -29,6 +29,7 @@ import {
   InvitationCode,
 } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
+import { PrizeUploadCard } from "./PrizeUploadCard";
 import { TRANSLATIONS, GET_APPSCRIPT_TEMPLATE } from "../translations";
 import {
   compressImageFileToDataUrl,
@@ -242,13 +243,16 @@ export default function SecurityConsole({
     }
 
     try {
+      console.log('[upload] Starting compression, file:', params.file.name, params.file.size, params.file.type);
       const dataUrl = await compressImageFileToDataUrl(
         params.file,
         params.compression,
       );
+      console.log('[upload] Compression done, dataUrl length:', dataUrl?.length, 'prefix:', dataUrl?.substring(0, 60));
       setUploadFeedback(null);
       params.onSuccess(dataUrl);
-    } catch {
+    } catch (err) {
+      console.error('[upload] Compression failed:', err);
       setUploadFeedback({
         type: "error",
         message:
@@ -1251,105 +1255,23 @@ export default function SecurityConsole({
             <hr className="border-zinc-800" />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {prizes.map((p) => {
-                const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = "";
-                  if (!file) return;
-                  void handleImageUpload({
-                    file,
-                    maxFileSizeBytes: 2 * 1024 * 1024,
-                    compression: {
-                      maxSize: 200,
-                      mimeType: "image/webp",
-                      quality: 0.9,
-                    },
-                    onSuccess: (dataUrl) => onUpdatePrizeImage?.(p.id, dataUrl),
-                  });
-                };
-
-                return (
-                  <div
-                    key={p.id}
-                    className="p-4 rounded-xl border border-zinc-800 bg-zinc-900/30 flex flex-col items-center gap-3 relative overflow-hidden text-center group"
-                  >
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded font-bold uppercase"
-                      style={{
-                        backgroundColor: `${p.color}20`,
-                        color: p.color,
-                      }}
-                    >
-                      {lang === "zh" ? p.levelZh : p.level}
-                    </span>
-                    <span className="text-zinc-300 font-bold text-[10px]">
-                      {lang === "zh" ? p.labelZh : p.label}
-                    </span>
-
-                    <div className="w-16 h-16 border-2 border-dashed border-zinc-700 rounded flex items-center justify-center overflow-hidden bg-black/40 mt-1">
-                      <PrizeGraphic
-                        prizeId={p.id}
-                        imageUrl={p.imageUrl}
-                        customImageBase64={p.customImageBase64}
-                        className="w-12 h-12"
-                      />
-                    </div>
-
-                    <label htmlFor={`upload-prize-${p.id}`} className="text-[10px] bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg cursor-pointer w-full mt-2 font-semibold transition-colors truncate block text-center">
-                      {lang === "zh" ? "⬆️ 浏览并上传" : "⬆️ Unggah File"}
-                    </label>
-                    <input
-                      id={`upload-prize-${p.id}`}
-                      type="file"
-                      accept="image/png, image/jpeg, image/webp"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-
-                    <div className="w-full grid grid-cols-2 gap-2 mt-2">
-                      <button
-                        disabled={!canUndoPrizeImage?.(p.id)}
-                        onClick={() => onUndoPrizeImage?.(p.id)}
-                        className={`text-[9px] px-2 py-1 rounded border transition-colors ${
-                          canUndoPrizeImage?.(p.id)
-                            ? "text-slate-200 hover:text-white hover:bg-slate-700 border-slate-600 bg-slate-800/40"
-                            : "text-slate-500 border-zinc-800 bg-zinc-900/30 cursor-not-allowed"
-                        }`}
-                      >
-                        <span className="inline-flex items-center justify-center gap-1.5">
-                          <Undo2 className="h-3.5 w-3.5" />
-                          {lang === "zh" ? "撤销" : "Undo"}
-                        </span>
-                      </button>
-                      <button
-                        disabled={!canRedoPrizeImage?.(p.id)}
-                        onClick={() => onRedoPrizeImage?.(p.id)}
-                        className={`text-[9px] px-2 py-1 rounded border transition-colors ${
-                          canRedoPrizeImage?.(p.id)
-                            ? "text-slate-200 hover:text-white hover:bg-slate-700 border-slate-600 bg-slate-800/40"
-                            : "text-slate-500 border-zinc-800 bg-zinc-900/30 cursor-not-allowed"
-                        }`}
-                      >
-                        <span className="inline-flex items-center justify-center gap-1.5">
-                          <Redo2 className="h-3.5 w-3.5" />
-                          {lang === "zh" ? "重做" : "Redo"}
-                        </span>
-                      </button>
-                    </div>
-
-                    {p.customImageBase64 && (
-                      <button
-                        onClick={() =>
-                          onUpdatePrizeImage && onUpdatePrizeImage(p.id, "")
-                        }
-                        className="text-[9px] text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-500/20 bg-rose-500/10 px-2 py-1 rounded w-full mt-1 transition-colors"
-                      >
-                        {lang === "zh" ? "清除图片" : "Hapus Gambar"}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+              {prizes.map((p) => (
+                <PrizeUploadCard
+                  key={p.id}
+                  prize={p}
+                  lang={lang}
+                  canUndo={canUndoPrizeImage?.(p.id) ?? false}
+                  canRedo={canRedoPrizeImage?.(p.id) ?? false}
+                  onUpload={(base64) => onUpdatePrizeImage?.(p.id, base64)}
+                  onUndo={() => onUndoPrizeImage?.(p.id)}
+                  onRedo={() => onRedoPrizeImage?.(p.id)}
+                  onClear={() => onUpdatePrizeImage?.(p.id, "")}
+                  onUploadError={(msg) =>
+                    setUploadFeedback({ type: "error", message: msg })
+                  }
+                  onUploadClear={() => setUploadFeedback(null)}
+                />
+              ))}
             </div>
           </div>
         )}

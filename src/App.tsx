@@ -342,12 +342,24 @@ export default function App() {
   useEffect(() => {
     const unsubGlobal = subscribeToGlobalSettings((data) => {
       if (data.prizes) {
+        const hasImages = data.prizes.some((p: Prize) => p.customImageBase64);
+        console.log('[Firebase] Got prizes from cloud:', {
+          count: data.prizes.length,
+          hasAnyCustomImage: hasImages,
+          images: data.prizes.map((p: Prize) => ({ id: p.id, has: !!p.customImageBase64, len: p.customImageBase64?.length })),
+        });
         lastCloudDocs.current.prizes = JSON.stringify(data.prizes);
         setPrizes(prev => {
-          if (JSON.stringify(prev) === JSON.stringify(data.prizes)) return prev;
+          const localHasImages = prev.some((p: Prize) => p.customImageBase64);
+          console.log('[Firebase] setPrizes merge - local has images:', localHasImages, 'cloud has images:', hasImages);
+          if (JSON.stringify(prev) === JSON.stringify(data.prizes)) {
+            console.log('[Firebase] setPrizes SKIP - identical');
+            return prev;
+          }
           const merged = data.prizes.map((firebasePrize: Prize) => {
             const local = prev.find((lp: Prize) => lp.id === firebasePrize.id);
             if (local?.customImageBase64 && !firebasePrize.customImageBase64) {
+              console.log('[Firebase] setPrizes MERGE - preserving image for', local.id);
               return { ...firebasePrize, customImageBase64: local.customImageBase64 };
             }
             return firebasePrize;
@@ -487,6 +499,7 @@ export default function App() {
       const currentStr = JSON.stringify(prizes);
       localStorage.setItem("kvb_prizes_v3", currentStr);
       if (isFirebaseLoaded && currentStr !== lastCloudDocs.current.prizes) {
+        console.log('[Sync] Saving prizes to Firebase, has images:', prizes.some(p => p.customImageBase64));
         lastCloudDocs.current.prizes = currentStr;
         saveGlobalSettings({ prizes });
       }
@@ -718,6 +731,12 @@ export default function App() {
   };
 
   const handleUpdatePrizeImage = (prizeId: string, base64: string) => {
+    console.log('[Upload] handleUpdatePrizeImage called:', {
+      prizeId,
+      base64Len: base64?.length,
+      isFalsy: !base64,
+      prefix: base64?.substring(0, 60),
+    });
     setPrizes((prev) =>
       prev.map((p) => {
         if (p.id !== prizeId) return p;
