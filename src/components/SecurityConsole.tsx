@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ShieldAlert,
   Database,
@@ -201,6 +201,10 @@ export default function SecurityConsole({
   } | null>(null);
   const [bgUploading, setBgUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+
+  // 用于追踪本地 blob URL，上传成功后释放，防止内存泄漏和闪烁
+  const pendingBgBlobUrlRef = useRef<string | null>(null);
+  const pendingLogoBlobUrlRef = useRef<string | null>(null);
 
   // High-value prizes to display stock control
   const highValuePrizes = prizes.filter((p) =>
@@ -1109,7 +1113,19 @@ export default function SecurityConsole({
                             setBgUploading(true);
                             const compressed = await compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 });
                             idbSet("bg", compressed).catch(() => {});
+
+                            // 先显示本地 blob 预览，避免等待 Cloudinary 时的白屏/卡顿
+                            const blobUrl = URL.createObjectURL(compressed);
+                            pendingBgBlobUrlRef.current = blobUrl;
+                            onUpdateCustomBg?.(blobUrl);
+
                             const cloudUrl = await uploadBgToCloudinary(compressed);
+
+                            // 释放 blob URL 并替换为云端地址
+                            if (pendingBgBlobUrlRef.current) {
+                              URL.revokeObjectURL(pendingBgBlobUrlRef.current);
+                              pendingBgBlobUrlRef.current = null;
+                            }
                             onUpdateCustomBg?.(cloudUrl);
                           } catch {
                             setBgUploadError(lang === "zh" ? "背景上传失败" : "Gagal mengunggah background");
@@ -1175,9 +1191,13 @@ export default function SecurityConsole({
                   {bgUploadError}
                 </p>
               )}
-              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center realtive">
+              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center relative">
                 {customBg ? (
-                  <img src={customBg} alt="background preview" className="w-full h-full object-cover opacity-80" />
+                  <img
+                    src={customBg}
+                    alt="background preview"
+                    className="w-full h-full object-cover opacity-80 transition-opacity duration-500"
+                  />
                 ) : (
                   <span className="text-zinc-600 font-bold text-sm tracking-widest uppercase">
                     {lang === "zh" ? "暂无背景预览" : "TIDAK ADA PREVIEW"}
@@ -1212,7 +1232,19 @@ export default function SecurityConsole({
                           try {
                             setLogoUploading(true);
                             const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
+
+                            // 先显示本地 blob 预览
+                            const blobUrl = URL.createObjectURL(blob);
+                            pendingLogoBlobUrlRef.current = blobUrl;
+                            onUpdateCustomLogo?.(blobUrl);
+
                             const cloudUrl = await uploadLogoToCloudinary(blob);
+
+                            // 释放 blob URL 并替换为云端地址
+                            if (pendingLogoBlobUrlRef.current) {
+                              URL.revokeObjectURL(pendingLogoBlobUrlRef.current);
+                              pendingLogoBlobUrlRef.current = null;
+                            }
                             onUpdateCustomLogo?.(cloudUrl);
                           } catch {
                             setLogoUploadError(lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo");
@@ -1273,9 +1305,13 @@ export default function SecurityConsole({
                   )}
                 </div>
               </div>
-              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center realtive">
+              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center relative">
                 {customLogo ? (
-                  <img src={customLogo} alt="logo preview" className="p-4 w-full h-full object-contain" />
+                  <img
+                    src={customLogo}
+                    alt="logo preview"
+                    className="p-4 w-full h-full object-contain transition-opacity duration-500"
+                  />
                 ) : (
                   <span className="text-zinc-600 font-bold text-sm tracking-widest uppercase">
                     {lang === "zh" ? "暂无 Logo 预览" : "TIDAK ADA PREVIEW"}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Award,
   Coins,
@@ -66,6 +66,13 @@ export function PrizeGraphic({
   );
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+
+  // 当图片地址变化时重置加载状态，避免旧图残留或闪白
+  useEffect(() => {
+    setImgLoaded(false);
+    setFailedSrc(null);
+  }, [displayImageSrc]);
+
   const isFailed = !!displayImageSrc && failedSrc === displayImageSrc;
   const frameClass = emphasize
     ? "prize-frame animate-prize-pulse"

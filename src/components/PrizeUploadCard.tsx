@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
@@ -36,6 +36,7 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
 }) => {
   const [uploading, setUploading] = useState<"thumb" | "large" | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const pendingBlobUrlRef = useRef<string | null>(null);
 
   const handleUpload = (kind: "thumb" | "large") => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -64,27 +65,34 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         quality: kind === "thumb" ? 0.88 : 0.92,
       });
       const blobUrl = URL.createObjectURL(blob);
+      pendingBlobUrlRef.current = blobUrl;
 
+      // 立即显示本地 blob 预览，避免等待 Cloudinary 时的空白
       if (kind === "thumb") {
         onUpload(blobUrl);
       } else {
         onUploadLarge(blobUrl);
       }
-      setUploading(null);
 
-      uploadPrizeToCloudinary(blob, prize.id)
-        .then((cloudUrl) => {
-          if (kind === "thumb") {
-            onUpload(cloudUrl);
-          } else {
-            onUploadLarge(cloudUrl);
-          }
-        })
-        .catch(() => {});
+      // 后台上传 Cloudinary，成功后替换 URL 并释放 blob
+      const cloudUrl = await uploadPrizeToCloudinary(blob, prize.id);
+
+      // 替换前先释放本次的 blob URL，防止内存泄漏
+      if (pendingBlobUrlRef.current) {
+        URL.revokeObjectURL(pendingBlobUrlRef.current);
+        pendingBlobUrlRef.current = null;
+      }
+
+      if (kind === "thumb") {
+        onUpload(cloudUrl);
+      } else {
+        onUploadLarge(cloudUrl);
+      }
     } catch {
       const msg = lang === "zh" ? "图片处理失败，请换一张图片重试" : "Gagal memproses gambar. Coba lagi.";
       setLocalError(msg);
       onUploadError(msg);
+    } finally {
       setUploading(null);
     }
   };
