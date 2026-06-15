@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
-import { compressImageFileToDataUrl, validateImageUploadFile } from "../utils/images";
+import { compressImageFileToBlob, validateImageUploadFile } from "../utils/images";
 import { uploadPrizeToCloudinary } from "../cloudinary";
 
 interface PrizeUploadCardProps {
@@ -58,20 +58,21 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
     setUploading(kind);
     try {
       const maxSize = kind === "thumb" ? 256 : 1024;
-      const dataUrl = await compressImageFileToDataUrl(file, {
+      const blob = await compressImageFileToBlob(file, {
         maxSize,
         mimeType: "image/webp",
         quality: kind === "thumb" ? 0.88 : 0.92,
       });
+      const blobUrl = URL.createObjectURL(blob);
 
       if (kind === "thumb") {
-        onUpload(dataUrl);
+        onUpload(blobUrl);
       } else {
-        onUploadLarge(dataUrl);
+        onUploadLarge(blobUrl);
       }
       setUploading(null);
 
-      uploadPrizeToCloudinary(dataUrl, prize.id)
+      uploadPrizeToCloudinary(blob, prize.id)
         .then((cloudUrl) => {
           if (kind === "thumb") {
             onUpload(cloudUrl);
