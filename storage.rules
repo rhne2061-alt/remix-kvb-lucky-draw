@@ -1,0 +1,20 @@
+rules_version = '2';
+// === Storage rules for the KVB Lucky Draw app ===
+//             Prize images are public so that customers can render
+//             them directly via the download URL. We still keep the
+//             write surface small: only the `prizes/` prefix is
+//             writable, and writes are capped at 8 MB / image/webp +
+//             image/jpeg + image/png only. Reads are open to the
+//             world. ===
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /prizes/{filename} {
+      allow read: if true;
+      allow write: if request.resource.size < 8 * 1024 * 1024
+                    && (request.resource.contentType.matches('image/.*'));
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

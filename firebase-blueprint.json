@@ -1,0 +1,49 @@
+{
+  "entities": {
+    "Config": {
+      "title": "Config",
+      "description": "Global settings for the application.",
+      "type": "object",
+      "properties": {
+        "prizes": { "type": "array" },
+        "riskConfig": { "type": "object" },
+        "metrics": { "type": "object" },
+        "sheetsConfig": { "type": "object" },
+        "invitationCodes": { "type": "array" },
+        "customBg": { "type": "string" },
+        "customLogo": { "type": "string" }
+      }
+    },
+    "Draw": {
+      "title": "Draw",
+      "description": "A single draw log.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "participantName": { "type": "string" },
+        "participantWhatsapp": { "type": "string" },
+        "participantKtp": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "prizeId": { "type": "string" },
+        "prizeLabel": { "type": "string" },
+        "originalPrizeId": { "type": "string" },
+        "originalPrizeLabel": { "type": "string" },
+        "isDowngraded": { "type": "boolean" },
+        "downgradeReason": { "type": "string" },
+        "status": { "type": "string" },
+        "blockReason": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/settings/global": {
+      "schema": { "$ref": "#/entities/Config" },
+      "description": "Global application state and configurations"
+    },
+    "/draws/{drawId}": {
+      "schema": { "$ref": "#/entities/Draw" },
+      "description": "Historical draw logs"
+    }
+  }
+}

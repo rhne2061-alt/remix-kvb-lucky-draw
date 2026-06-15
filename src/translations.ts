@@ -1,0 +1,253 @@
+export const TRANSLATIONS: Record<"zh" | "id", Record<string, string>> = {
+  zh: {
+    title: "KVB 幸运大转盘",
+    campaignTitle: "KVB 经纪商 2026 幸运大转盘",
+    campaignSubtitle: "KVB Global Markets Group | 2025 A++ 级监管经纪商",
+    campaignDescription: "加入 2025 顶级 A++ 经纪商,交易 XAUUSD 黄金,赢取纯金金条、顶级数码产品以及数百笔即时交易补贴直接转入您的电子钱包!",
+    registerTitle: "KVB 经纪商邀请码验证",
+    registerBadge: "1 账户 = 1 票",
+    registerDesc: "根据 KVB 经纪商合规监管要求,请输入您的真实姓名、有效 WhatsApp 号码以及从客户经理处获取的独立邀请码。",
+    fullNameLabel: "真实姓名",
+    fullNamePlace: "示例:王小明",
+    whatsappLabel: "WhatsApp 号码(有效)",
+    whatsappPlace: "示例:081234567890",
+    ktpLabel: "KVB 邀请码 (Invitation Code)",
+    ktpPlace: "请输入 KVB 邀请码 (示例: KVB-8888)",
+    deviceFingerprint: "设备指纹:",
+    submitButton: "锁定凭证并开始抽奖",
+    verifiedTitle: "邀请验证通过 (Cleared)",
+    verifiedBadge: "邀请票已绑定设备",
+    logoutButton: "清除会话 / 切换账户",
+    wheelTitle: "KVB 幸运大转盘",
+    wheelSubtitle: "真实数学概率 + 动态风控缓释",
+    spinButton: "开始",
+    spinButtonStart: "开始",
+    spinningLabel: "抽奖中",
+    winTitle: "恭喜,您中奖了!",
+    winStatus: "状态: 票据已匹配",
+    winDesc: "如需领奖,请联系客服进行身份核验与发放。",
+    winDowngradeWarn: "[已触发运营 SOP] 您原本命中 {original},但由于库存/配额耗尽,Stock Cap 安全熔断器侦测到超出限制,已自动将您的奖项切换为 {won}。",
+    confirmClaim: "确认领奖",
+    recentWinners: "实时中奖动态 (Live Feed)",
+    serverStatus: "服务器: 在线",
+    verificationLock: "反欺诈锁: 邀请码 & 设备",
+    operationSpecial: "运营: XAUUSD 专场",
+    totalDraws: "累计抽奖尝试",
+    blockedAttempts: "被拦截(反机器人)",
+    successfulDraws: "成功派发奖项",
+    downgradedDraws: "降级发奖(自动绕过)",
+    prizesDetailTitle: "奖项详情与实物派发:",
+    grandPrizeDesc: "特等奖: 10 克 Antam 黄金金条,派送至您已验证地址。",
+    juara1Desc: "冠军: 川崎 Ninja 250(专人专车派送)。",
+    juara2Desc: "亚军: Macbook Pro M4 Max(保险专递)。",
+    juara3Desc: "季军: iPhone 16 Pro Max 1TB(高端派送)。",
+    juara4Desc: "第四名: 30 天 KVB 量化 AI 交易信号全权访问。",
+    juara5Desc: "第五名: KVB 宏观对冲配置白皮书。",
+    juara6Desc: "第六名: XAUUSD 交易指南手册。",
+    bonusDesc: "鼓励奖: 明天再来!名额有限,欢迎明日再战。",
+    adminTitle: "运营与风险控制中心",
+    adminSubtitle: "KVB 系统按金融技术审计与 POS 规范实施安全防护",
+    resetSession: "重置会话",
+    syncSheetsTab: "Google Sheets 同步",
+    stockCapTab: "库存熔断(Stock Cap)",
+    timeSlotTab: "时段释放(Time-slot)",
+    antifraudTab: "反欺诈防线",
+    auditLogsTab: "审计日志",
+    sheetsMethodLabel: "Google Sheets 同步方式:",
+    sheetsMethodWebapp: "Google Apps Script Web App (推荐 - 兼容沙箱 iframe)",
+    sheetsMethodDirect: "REST API 直接认证 (使用 OAuth Access Token)",
+    sheetsAppscriptUrl: "Google Apps Script Web App URL:",
+    sheetsAppscriptUrlPlace: "示例: https://script.google.com/macros/s/.../exec",
+    sheetsSpreadsheetId: "Google Sheets Spreadsheet ID:",
+    sheetsSpreadsheetIdPlace: "示例: 1v3X-Bv4D...",
+    sheetsAccessToken: "OAuth Access Token (Direct API):",
+    sheetsAccessTokenPlace: "填入 OAuth token,使用 Web App 时可留空",
+    sheetsAutoSyncLabel: "每次抽奖完成后自动同步",
+    sheetsStatusConnected: "状态: 已连接 Google Sheets",
+    sheetsStatusNotConnected: "状态: 离线(本地存储)",
+    sheetsTestButton: "发送测试行(Test Sync Row)",
+    sheetsSyncAllButton: "将 {count} 条本地数据上传至 Google Sheets",
+    sheetsInstructionsTitle: "💡 30 秒完成 Google Sheets 接入指南:",
+    sheetsInstructionsStep1: "1. 在浏览器打开 Google Sheets (sheets.new) 新建一份表格。",
+    sheetsInstructionsStep2: "2. 点击顶部菜单 [扩展程序] -> [Apps Script]。",
+    sheetsInstructionsStep3: "3. 把右侧脚本复制粘贴到 Apps Script 编辑器(⚠️ 重要:点击 [部署] -> [新建部署] 之前,必须先点击编辑器上方的 [保存项目] 💾 图标,否则部署按钮会灰掉)。保存后选 [Web 应用],将 [有权访问者] 设为 [任何人]。",
+    sheetsInstructionsStep4: "4. 复制生成的 Web App URL,粘贴到左侧输入框,即可开始无限制免费自动同步!",
+    copyScriptCode: "复制脚本",
+    codeCopied: "脚本已复制!",
+    terminalTitle: "过滤安全 Shell 终端 v1.2",
+    terminalEmpty: "等待模拟威胁... 点击下方按钮进行压力测试。",
+    runBotButton: "发起 100 机器人攻击",
+    runningBot: "攻击进行中...",
+    auditTime: "时间",
+    auditName: "参与者",
+    auditWa: "WhatsApp",
+    auditKtp: "邀请码",
+    auditPrize: "奖项",
+    auditStatus: "审计状态",
+    auditSuccess: "成功",
+    auditBlocked: "已拦截",
+    failsafeSummary: "金融资产保护原则:若用户幸运触发高概率但配额(库存 = 0)耗尽,系统必须静默撤回发放并自动降级到第三/第四档。",
+    goldenHourTitle: "按活跃时段的概率分布:",
+    goldenHourDesc: "为触发社媒传播,高额奖项(iPhone 16)集中在 KVB 交易信号发布高峰(19:30-21:00)。其它时段概率被压制到极低。",
+    antiFraudDesc: "拦截模拟器机器人、漏洞扫描脚本,以及利用已注册 WhatsApp/有效邀请码/硬件设备指纹的重复注册。",
+    antiFraudButtonLabel: "查重过滤已启用:",
+    registerFirst: "请先填写注册表单并完成验证",
+  },
+  id: {
+    title: "Roda Keberuntungan KVB",
+    campaignTitle: "Roda Keberuntungan Broker KVB 2026",
+    campaignSubtitle: "KVB Global Markets Group | Regulated Broker A++ Grade 2025",
+    campaignDescription: "Bergabunglah dengan broker berperingkat A++ Terbaik 2025. Transaksikan emas XAUUSD dan menangkan kepingan emas fisik murni, gadget premium, serta ratusan dana subsidi trading instan langsung ke e-wallet Anda!",
+    registerTitle: "Verifikasi Tiket Undangan Broker KVB",
+    registerBadge: "1 Akun = 1 Tiket",
+    registerDesc: "Sesuai regulasi kepatuhan broker KVB, silakan masukkan Nama Lengkap, Nomor WhatsApp aktif, serta Kode Undangan (Invitation Code) unik yang didapatkan dari Relationship Manager Anda.",
+    fullNameLabel: "Nama Lengkap",
+    fullNamePlace: "Contoh: Muhammad Santoso",
+    whatsappLabel: "Nomor WhatsApp (Aktif)",
+    whatsappPlace: "Contoh: 081234567890",
+    ktpLabel: "Kode Undangan KVB (Invitation Code)",
+    ktpPlace: "Masukkan Kode Undangan KVB (contoh: KVB-8888)",
+    deviceFingerprint: "Fingerprint Perangkat: ",
+    submitButton: "Kunci Kredensial & Mulai Spin",
+    verifiedTitle: "Verifikasi Undangan Sukses (Cleared)",
+    verifiedBadge: "Tiket Undangan Terkunci Perangkat",
+    logoutButton: "Hapus Sesi / Ganti Akun",
+    wheelTitle: "Roda Keberuntungan KVB",
+    wheelSubtitle: "Peluang matematika nyata dengan mitigasi risiko dinamis",
+    spinButton: "PUTAR",
+    spinButtonStart: "PUTAR",
+    spinningLabel: "MEMUTAR",
+    winTitle: "Selamat, Anda Menang!",
+    winStatus: "Status: Tiket Dipasangkan",
+    winDesc: "Untuk mengambil hadiah, silakan hubungi layanan pelanggan untuk verifikasi dan penerbitan.",
+    winDowngradeWarn: "[SOP Operasional Dipicu] Anda memenangkan {original}, namun karena stok/kuota habis, Failsafe Keamanan (Stock Cap) mendeteksi limit melampaui dan secara otomatis mengalihkan hadiah Anda ke {won}.",
+    confirmClaim: "Konfirmasi & Ambil Hadiah",
+    recentWinners: "Aktivitas Pemenang Langsung (Live Feed)",
+    serverStatus: "Server: ONLINE",
+    verificationLock: "Anti-Fraud Lock: Code & WA-ID",
+    operationSpecial: "Operasional: XAUUSD Spesial",
+    totalDraws: "TOTAL DRAW UPAYA",
+    blockedAttempts: "UPAYA BLOCKED (ANTI-BOT)",
+    successfulDraws: "HADIAH SUKSES DIKIRIM",
+    downgradedDraws: "DOWNGRADED (AUTO-BYPASS)",
+    prizesDetailTitle: "Detail Hadiah & Distribusi Fisik:",
+    grandPrizeDesc: "Hadiah Utama: Gold 10gr emas batangan Antam dikirim ke alamat terverifikasi Anda.",
+    juara1Desc: "Juara 1: Kawasaki Ninja 250 (dikirim kurir penanganan khusus).",
+    juara2Desc: "Juara 2: Macbook Pro M4 Max (dikirim kurir berasuransi).",
+    juara3Desc: "Juara 3: iPhone 16 Pro Max 1TB (dikirim kurir premium).",
+    juara4Desc: "Juara 4: Akses penuh Signal AI Trading Kuantitatif selama 1 bulan.",
+    juara5Desc: "Juara 5: Whitepaper Alokasi Makro KVB.",
+    juara6Desc: "Juara 6: Buku Panduan Trading XAUUSD.",
+    bonusDesc: "Bonus: Coba Lagi Besok! Kesempatan terbatas, coba lagi esok hari.",
+    adminTitle: "Operational & Risk Control Center (Pusat Kendali Pengawas)",
+    adminSubtitle: "Implementasi Keamanan Sistem Sesuai POS & Audit Teknologi Finansial KVB",
+    resetSession: "Reset Kapsul Sesi",
+    syncSheetsTab: "Sinkronisasi Google Sheets",
+    stockCapTab: "Failsafe Stok (Stock Cap)",
+    timeSlotTab: "Rilis Slot Waktu (Time-slot)",
+    antifraudTab: "Keamanan Anti-Fraud",
+    auditLogsTab: "Log Audit",
+    sheetsMethodLabel: "Metode Sinkronisasi Google Sheets:",
+    sheetsMethodWebapp: "Google Apps Script Web App (Direkomendasikan - Bebas Iframe Sandbox)",
+    sheetsMethodDirect: "REST API Direct Auth (Menggunakan OAuth Access Token)",
+    sheetsAppscriptUrl: "URL Web App Google Apps Script:",
+    sheetsAppscriptUrlPlace: "Contoh: https://script.google.com/macros/s/.../exec",
+    sheetsSpreadsheetId: "Spreadsheet ID Google Sheets:",
+    sheetsSpreadsheetIdPlace: "Contoh: 1v3X-Bv4D...",
+    sheetsAccessToken: "OAuth Access Token (Direct API):",
+    sheetsAccessTokenPlace: "Masukkan token OAuth atau biarkan kosong jika menggunakan Web App URL",
+    sheetsAutoSyncLabel: "Otomatis sinkronisasi setelah setiap sesi spin selesai",
+    sheetsStatusConnected: "Status: Terhubung dengan Google Sheets",
+    sheetsStatusNotConnected: "Status: Offline (Local Storage)",
+    sheetsTestButton: "Kirim Data Uji (Test Sync Row)",
+    sheetsSyncAllButton: "Unggah {count} Data Lokal Ke Google Sheets",
+    sheetsInstructionsTitle: "💡 Panduan Integrasi Google Sheets dalam 30 Detik:",
+    sheetsInstructionsStep1: "1. Buka Google Sheets (sheets.new) di peramban Anda untuk membuat spreadsheet baru.",
+    sheetsInstructionsStep2: "2. Klik menu 'Extensions' -> 'Apps Script' di bagian atas layar.",
+    sheetsInstructionsStep3: "3. Salin script di sebelah kanan dan tempelkan ke editor Apps Script. [⚠️ PENTING: Sebelum mengklik 'Deploy -> New Deployment', Anda WAJIB mengklik tombol 'Save project' (ikon disket 💾 di atas editor) terlebih dahulu! Jika tidak, tombol Deploy akan abu-abu]. Setelah disimpan, Deploy siap dibuka, pilih Web App, dan atur 'Who has access' sebagai 'Anyone'.",
+    sheetsInstructionsStep4: "4. Salin URL Web App yang dihasilkan dan tempelkan ke kolom URL di sebelah kiri untuk integrasi gratis dan otomatis tanpa batas!",
+    copyScriptCode: "Salin Kode Script",
+    codeCopied: "Script berhasil disalin!",
+    terminalTitle: "TERMINAL FILTER SECURITY SHELL v1.2",
+    terminalEmpty: "Siap menerima simulasi ancaman... Klik tombol di bawah untuk stress-test.",
+    runBotButton: "Serang Dengan 100 Bot",
+    runningBot: "Bot menyerang...",
+    auditTime: "Waktu",
+    auditName: "Peserta (Nama)",
+    auditWa: "Nomor WhatsApp",
+    auditKtp: "Kode Undangan (Code)",
+    auditPrize: "Hadiah",
+    auditStatus: "Status Audit",
+    auditSuccess: "SUKSES",
+    auditBlocked: "BLOCKED",
+    failsafeSummary: "Prinsip Perlindungan Aset Finansial: Jika pengguna beruntung memicu probabilitas tinggi tetapi kuota habis (Stok = 0), sistem wajib mengagalkan penyerahan secara senyap dan dialihkan (downgraded) ke Juara 3 atau Juara 4.",
+    goldenHourTitle: "Distribusi Peluang Berdasarkan Jam Aktif:",
+    goldenHourDesc: "Guna memicu viralitas di media sosial, hadiah tinggi (iPhone 16) disandarkan pada jam puncak rilis sinyal trading KVB (19:30 - 21:00). Di luar jam tersebut, probabilitas ditekan menjadi sangat rendah.",
+    antiFraudDesc: "Mencegah bot emulasi, script pencari celah, dan pendaftaran ganda menggunakan database WhatsApp, Kode Undangan valid, dan sidik jari perangkat keras (Device Fingerprint ID).",
+    antiFraudButtonLabel: "Filter Duplikasi Aktif:",
+    registerFirst: "Silakan isi formulir pendaftaran dan selesaikan verifikasi terlebih dahulu",
+  }
+};
+
+export const GET_APPSCRIPT_TEMPLATE = (sheetName = "Sheet1") => {
+  return `/**
+ * KVB Lucky Draw Google Sheets Receiver Sync Script
+ * ----------------------------------------------------
+ * Paste this script into your Google Sheets extension "Apps Script".
+ * Deploy as a Web App (Set "Who has access" to "Anyone").
+ */
+
+function doPost(e) {
+  try {
+    var rawData = e.postData.contents;
+    var data = JSON.parse(rawData);
+    
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // Check if headers exist, if not, write them!
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow([
+        "Waktu / Timestamp",
+        "Nama Investor / Name",
+        "WhatsApp",
+        "ID KTP",
+        "Device ID Fingerprint",
+        "Hadiah Won / Prize Level",
+        "Label Hadiah / Prize Desc",
+        "Status Validasi / Audit Status",
+        "Failsafe Downgraded",
+        "Original Prize (If Downgraded)"
+      ]);
+    }
+    
+    // Append the participant draw payload
+    sheet.appendRow([
+      data.timestamp || new Date().toLocaleString(),
+      data.participantName,
+      data.participantWhatsapp,
+      "'" + data.participantKtp, // Prefixed with apostrophe to keep 16-digits string intact in Google Sheets
+      data.deviceId,
+      data.prizeId,
+      data.prizeLabel,
+      data.status,
+      data.isDowngraded ? "YES" : "NO",
+      data.originalPrizeLabel || "-"
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      message: "Data successfully synced to Google Sheets!"
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch(error) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  return ContentService.createTextOutput("KVB Lucky Draw Google Sheets Receiver Node is fully active.");
+}`;
+};
