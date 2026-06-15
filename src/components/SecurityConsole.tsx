@@ -1232,6 +1232,8 @@ export default function SecurityConsole({
                           try {
                             setLogoUploading(true);
                             const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
+                            // 保存到 IndexedDB，保证刷新后 Logo 不丢失（即使 Cloudinary 上传失败）
+                            idbSet("logo", blob).catch(() => {});
 
                             // 先显示本地 blob 预览
                             const blobUrl = URL.createObjectURL(blob);
@@ -1247,7 +1249,7 @@ export default function SecurityConsole({
                             }
                             onUpdateCustomLogo?.(cloudUrl);
                           } catch {
-                            setLogoUploadError(lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo");
+                            setLogoUploadError(lang === "zh" ? "Logo 上传失败，但本地预览已保存" : "Gagal mengunggah logo, preview lokal tersimpan");
                           } finally {
                             setLogoUploading(false);
                           }

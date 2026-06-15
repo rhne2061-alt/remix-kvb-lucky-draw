@@ -361,9 +361,24 @@ export default function App() {
     }
   }, [customBg]);
 
-  const [customLogo, setCustomLogoRaw] = useState<string>(() => {
-    return localStorage.getItem("kvb_custom_logo") || "";
-  });
+  const [customLogo, setCustomLogoRaw] = useState<string>("");
+  const logoBlobRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    idbGet("logo").then((blob) => {
+      if (blob instanceof Blob) {
+        const url = URL.createObjectURL(blob);
+        logoBlobRef.current = url;
+        setCustomLogoRaw(url);
+      } else {
+        const saved = localStorage.getItem("kvb_custom_logo");
+        if (saved) setCustomLogoRaw(saved);
+      }
+    }).catch(() => {
+      const saved = localStorage.getItem("kvb_custom_logo");
+      if (saved) setCustomLogoRaw(saved);
+    });
+  }, []);
 
   const [isFirebaseLoaded, setIsFirebaseLoaded] = useState(false);
   const lastCloudDocs = useRef<any>({});
@@ -449,8 +464,11 @@ export default function App() {
       setImageHistoryTick((t) => t + 1);
       return base64;
     });
+    // blob URL 是临时的，只保存到 IndexedDB，不写 localStorage
     if (base64) {
-      localStorage.setItem("kvb_custom_logo", base64);
+      if (!base64.startsWith("blob:")) {
+        localStorage.setItem("kvb_custom_logo", base64);
+      }
     } else {
       localStorage.removeItem("kvb_custom_logo");
     }
@@ -478,9 +496,12 @@ export default function App() {
     });
   };
 
+  // 仅在非 blob URL 时持久化到 localStorage（云端 URL 或空字符串）
   useEffect(() => {
     if (customLogo) {
-      localStorage.setItem("kvb_custom_logo", customLogo);
+      if (!customLogo.startsWith("blob:")) {
+        localStorage.setItem("kvb_custom_logo", customLogo);
+      }
     } else {
       localStorage.removeItem("kvb_custom_logo");
     }
