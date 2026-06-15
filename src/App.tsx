@@ -1149,16 +1149,14 @@ export default function App() {
     >
       {/* Fixed Background Image Layer */}
       <div className="fixed inset-0 z-[-1] w-full h-full bg-[#030712] pointer-events-none">
-        <div
-          className="absolute inset-0 w-full h-full"
-          style={{
-            backgroundImage: customBg ? `url(${customBg})` : "none",
-            backgroundSize: "cover",
-            backgroundPosition: "center center",
-            backgroundRepeat: "no-repeat",
-            willChange: "transform",
-          }}
-        />
+        {customBg && (
+          <img
+            src={customBg}
+            alt=""
+            className="absolute inset-0 w-full h-full"
+            style={{ objectFit: "cover", objectPosition: "center" }}
+          />
+        )}
         {/* Subtle dark overlay gradient for readability and design premium finish */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#030712]/30 to-[#030712]/80" />
       </div>
