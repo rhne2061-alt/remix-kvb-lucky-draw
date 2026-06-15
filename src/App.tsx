@@ -87,10 +87,10 @@ const maskCode = (code: string) => {
 
 const stripBase64FromPrize = (p: Prize): Prize => {
   const cleaned = { ...p };
-  if (cleaned.customImageBase64?.startsWith("data:")) {
+  if (cleaned.customImageBase64?.startsWith("data:") || cleaned.customImageBase64?.startsWith("blob:")) {
     cleaned.customImageBase64 = undefined;
   }
-  if (cleaned.customImageLargeBase64?.startsWith("data:")) {
+  if (cleaned.customImageLargeBase64?.startsWith("data:") || cleaned.customImageLargeBase64?.startsWith("blob:")) {
     cleaned.customImageLargeBase64 = undefined;
   }
   return cleaned;
