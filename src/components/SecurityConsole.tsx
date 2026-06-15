@@ -37,7 +37,7 @@ import {
   compressImageFileToBlob,
 } from "../utils/images";
 import { idbSet } from "../utils/persist";
-import { uploadBgToCloudinary, uploadLogoToCloudinary } from "../cloudinary";
+import { uploadBgToCloudinary, uploadLogoToCloudinary, isCloudinaryConfigured, getCloudinaryConfigError } from "../cloudinary";
 
 interface SecurityConsoleProps {
   prizes: Prize[];
@@ -1127,8 +1127,13 @@ export default function SecurityConsole({
                               pendingBgBlobUrlRef.current = null;
                             }
                             onUpdateCustomBg?.(cloudUrl);
-                          } catch {
-                            setBgUploadError(lang === "zh" ? "背景上传失败" : "Gagal mengunggah background");
+                          } catch (e) {
+                            const errMsg = e instanceof Error ? e.message : "";
+                            if (!isCloudinaryConfigured()) {
+                              setBgUploadError(`⚠️ ${getCloudinaryConfigError()}`);
+                            } else {
+                              setBgUploadError(errMsg || (lang === "zh" ? "背景上传失败" : "Gagal mengunggah background"));
+                            }
                           } finally {
                             setBgUploading(false);
                           }
@@ -1248,8 +1253,13 @@ export default function SecurityConsole({
                               pendingLogoBlobUrlRef.current = null;
                             }
                             onUpdateCustomLogo?.(cloudUrl);
-                          } catch {
-                            setLogoUploadError(lang === "zh" ? "Logo 上传失败，但本地预览已保存" : "Gagal mengunggah logo, preview lokal tersimpan");
+                          } catch (e) {
+                            const errMsg = e instanceof Error ? e.message : "";
+                            if (!isCloudinaryConfigured()) {
+                              setLogoUploadError(`⚠️ Logo 本地已保存。${getCloudinaryConfigError()}`);
+                            } else {
+                              setLogoUploadError(errMsg || (lang === "zh" ? "Logo 上传失败，但本地预览已保存" : "Gagal mengunggah logo, preview lokal tersimpan"));
+                            }
                           } finally {
                             setLogoUploading(false);
                           }

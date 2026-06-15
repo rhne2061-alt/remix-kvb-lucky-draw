@@ -3,7 +3,8 @@ import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
 import { compressImageFileToBlob, validateImageUploadFile } from "../utils/images";
-import { uploadPrizeToCloudinary } from "../cloudinary";
+import { uploadPrizeToCloudinary, isCloudinaryConfigured } from "../cloudinary";
+import { idbSet } from "../utils/persist";
 
 interface PrizeUploadCardProps {
   prize: Prize;
@@ -64,34 +65,44 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         mimeType: "image/webp",
         quality: kind === "thumb" ? 0.88 : 0.92,
       });
+
+      // 保存到 IndexedDB，即使 Cloudinary 失败刷新后也能恢复
+      const dbKey = kind === "thumb" ? `prize_img_thumb_${prize.id}` : `prize_img_large_${prize.id}`;
+      idbSet(dbKey, blob).catch(() => {});
+
       const blobUrl = URL.createObjectURL(blob);
       pendingBlobUrlRef.current = blobUrl;
 
-      // 立即显示本地 blob 预览，避免等待 Cloudinary 时的空白
+      // 立即显示本地 blob 预览
       if (kind === "thumb") {
         onUpload(blobUrl);
       } else {
         onUploadLarge(blobUrl);
       }
 
-      // 后台上传 Cloudinary，成功后替换 URL 并释放 blob
-      const cloudUrl = await uploadPrizeToCloudinary(blob, prize.id);
+      // 上传 Cloudinary
+      if (isCloudinaryConfigured()) {
+        const cloudUrl = await uploadPrizeToCloudinary(blob, prize.id);
 
-      // 替换前先释放本次的 blob URL，防止内存泄漏
-      if (pendingBlobUrlRef.current) {
-        URL.revokeObjectURL(pendingBlobUrlRef.current);
-        pendingBlobUrlRef.current = null;
-      }
+        // 释放 blob URL 并替换为云端地址
+        if (pendingBlobUrlRef.current) {
+          URL.revokeObjectURL(pendingBlobUrlRef.current);
+          pendingBlobUrlRef.current = null;
+        }
 
-      if (kind === "thumb") {
-        onUpload(cloudUrl);
-      } else {
-        onUploadLarge(cloudUrl);
+        if (kind === "thumb") {
+          onUpload(cloudUrl);
+        } else {
+          onUploadLarge(cloudUrl);
+        }
       }
+      // Cloudinary 未配置时：保留本地 blob 预览，用户仍可正常使用
     } catch {
-      const msg = lang === "zh" ? "图片处理失败，请换一张图片重试" : "Gagal memproses gambar. Coba lagi.";
+      // Cloudinary 上传失败但本地预览已通过 IndexedDB 持久化，刷新不丢
+      const msg = lang === "zh"
+        ? "云端上传失败，图片已保存到本地（刷新后仍可显示）"
+        : "Gagal unggah ke cloud, gambar disimpan lokal (akan muncul setelah refresh)";
       setLocalError(msg);
-      onUploadError(msg);
     } finally {
       setUploading(null);
     }

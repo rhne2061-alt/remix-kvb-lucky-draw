@@ -108,12 +108,48 @@ export default function App() {
       const saved = localStorage.getItem("kvb_prizes_v3");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length === INITIAL_PRIZES.length)
-          return parsed;
+        if (Array.isArray(parsed) && parsed.length === INITIAL_PRIZES.length) {
+          // 清理上一会话残留的 blob URL（跨会话无效），避免刷新后闪裂图
+          return parsed.map((p: Prize) => ({
+            ...p,
+            customImageBase64: p.customImageBase64?.startsWith("blob:") ? undefined : p.customImageBase64,
+            customImageLargeBase64: p.customImageLargeBase64?.startsWith("blob:") ? undefined : p.customImageLargeBase64,
+          }));
+        }
       }
     } catch (_) {}
     return INITIAL_PRIZES;
   });
+
+  // 启动时从 IndexedDB 恢复奖品图（即使 Cloudinary 失败或 blob URL 已过期）
+  useEffect(() => {
+    const PRIZE_IDS = INITIAL_PRIZES.map(p => p.id);
+    Promise.all(
+      PRIZE_IDS.flatMap(id => [
+        idbGet(`prize_img_thumb_${id}`).then(blob => ({ id, kind: "thumb" as const, blob })),
+        idbGet(`prize_img_large_${id}`).then(blob => ({ id, kind: "large" as const, blob })),
+      ]),
+    ).then((results) => {
+      setPrizes(prev => {
+        let changed = false;
+        const updated = prev.map(p => {
+          const thumbResult = results.find(r => r.id === p.id && r.kind === "thumb");
+          const largeResult = results.find(r => r.id === p.id && r.kind === "large");
+          let copy = { ...p };
+          if (thumbResult?.blob instanceof Blob && !copy.customImageBase64) {
+            copy.customImageBase64 = URL.createObjectURL(thumbResult.blob);
+            changed = true;
+          }
+          if (largeResult?.blob instanceof Blob && !copy.customImageLargeBase64) {
+            copy.customImageLargeBase64 = URL.createObjectURL(largeResult.blob);
+            changed = true;
+          }
+          return copy;
+        });
+        return changed ? updated : prev;
+      });
+    }).catch(() => {});
+  }, []);
 
   const [recentDraws, setRecentDraws] = useState<DrawResult[]>(() => {
     try {
@@ -394,6 +430,8 @@ export default function App() {
             const local = prev.find((lp: Prize) => lp.id === firebasePrize.id);
             const restored = { ...firebasePrize };
             const mergeImg = (cloudVal: string | undefined, localVal: string | undefined) => {
+              // 本地 blob URL 是当前会话才有效，跨会话来自 localStorage 的是死链，直接忽略
+              if (localVal?.startsWith("blob:")) return cloudVal || undefined;
               if (!cloudVal && localVal) return localVal;
               if (cloudVal?.startsWith("data:") && localVal?.startsWith("https://")) return localVal;
               return cloudVal || localVal || undefined;
