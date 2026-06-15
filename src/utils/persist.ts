@@ -44,3 +44,32 @@ export async function idbDel(key: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+// 防抖 localStorage 写入：将多次写入合并到下一个宏任务，减少主线程阻塞
+const _pending = new Map<string, string>();
+let _timer: ReturnType<typeof setTimeout> | null = null;
+export function lsSet(key: string, value: string): void {
+  _pending.set(key, value);
+  if (_timer === null) {
+    _timer = setTimeout(() => {
+      for (const [k, v] of _pending) {
+        try { localStorage.setItem(k, v); } catch {}
+      }
+      _pending.clear();
+      _timer = null;
+    }, 0);
+  }
+}
+export function lsRemove(key: string): void {
+  _pending.delete(key);
+  if (_timer === null) {
+    _timer = setTimeout(() => {
+      for (const [k, v] of _pending) {
+        try { localStorage.setItem(k, v); } catch {}
+      }
+      _pending.clear();
+      _timer = null;
+    }, 0);
+  }
+  try { localStorage.removeItem(key); } catch {}
+}

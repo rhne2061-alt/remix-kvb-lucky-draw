@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ShieldCheck,
   Gift,
@@ -33,7 +33,7 @@ import { syncSingleDrawToSheets } from "./utils/sheets";
 import ConfettiEffect from "./components/ConfettiEffect";
 import { PrizeGraphic } from "./components/PrizeGraphic";
 import { subscribeToGlobalSettings, saveGlobalSettings, subscribeToDraws, saveDraw } from "./firebase";
-import { idbGet, idbSet, idbDel } from "./utils/persist";
+import { idbGet, idbSet, idbDel, lsSet, lsRemove } from "./utils/persist";
 
 // =========================================================================
 // 💡 全局默认配置（全局同步器）：如果您已经拿到了 Google Apps Script 网页应用连接（即 /exec 结尾的长链接）
@@ -121,6 +121,19 @@ export default function App() {
     return INITIAL_PRIZES;
   });
 
+  // 跟踪从 IndexedDB 恢复的 blob URL，用于卸载时统一释放
+  const restoredBlobUrlsRef = useRef<Map<string, { thumb?: string; large?: string }>>(new Map());
+  useEffect(() => {
+    const map = restoredBlobUrlsRef.current;
+    return () => {
+      for (const entry of map.values()) {
+        if (entry.thumb) URL.revokeObjectURL(entry.thumb);
+        if (entry.large) URL.revokeObjectURL(entry.large);
+      }
+      map.clear();
+    };
+  }, []);
+
   // 启动时从 IndexedDB 恢复奖品图（即使 Cloudinary 失败或 blob URL 已过期）
   useEffect(() => {
     const PRIZE_IDS = INITIAL_PRIZES.map(p => p.id);
@@ -136,14 +149,20 @@ export default function App() {
           const thumbResult = results.find(r => r.id === p.id && r.kind === "thumb");
           const largeResult = results.find(r => r.id === p.id && r.kind === "large");
           let copy = { ...p };
+          const entry = restoredBlobUrlsRef.current.get(p.id) ?? {};
           if (thumbResult?.blob instanceof Blob && !copy.customImageBase64) {
+            if (entry.thumb) URL.revokeObjectURL(entry.thumb);
             copy.customImageBase64 = URL.createObjectURL(thumbResult.blob);
+            entry.thumb = copy.customImageBase64;
             changed = true;
           }
           if (largeResult?.blob instanceof Blob && !copy.customImageLargeBase64) {
+            if (entry.large) URL.revokeObjectURL(entry.large);
             copy.customImageLargeBase64 = URL.createObjectURL(largeResult.blob);
+            entry.large = copy.customImageLargeBase64;
             changed = true;
           }
+          restoredBlobUrlsRef.current.set(p.id, entry);
           return copy;
         });
         return changed ? updated : prev;
@@ -278,10 +297,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem(
-      "kvb_invitation_codes_v2",
-      JSON.stringify(invitationCodes),
-    );
+    lsSet("kvb_invitation_codes_v2", JSON.stringify(invitationCodes));
   }, [invitationCodes]);
 
   const handleAddInvitationCode = (code: string) => {
@@ -342,8 +358,6 @@ export default function App() {
   const prizeImageHistoryRef = useRef<
     Record<string, { past: string[]; future: string[] }>
   >({});
-  const [imageHistoryTick, setImageHistoryTick] = useState(0);
-
   const handleUpdateCustomBg = (url: string) => {
     if (customBgBlobRef.current && customBgBlobRef.current !== url && !url.startsWith("blob:")) {
       URL.revokeObjectURL(customBgBlobRef.current);
@@ -361,7 +375,6 @@ export default function App() {
       if (prev === url) return prev;
       customBgHistoryRef.current.push(prev);
       customBgFutureRef.current = [];
-      setImageHistoryTick((t) => t + 1);
       return url;
     });
   };
@@ -372,7 +385,6 @@ export default function App() {
       if (!past.length) return prev;
       const next = past.pop() ?? "";
       customBgFutureRef.current.push(prev);
-      setImageHistoryTick((t) => t + 1);
       return next;
     });
   };
@@ -383,7 +395,6 @@ export default function App() {
       if (!future.length) return prev;
       const next = future.pop() ?? "";
       customBgHistoryRef.current.push(prev);
-      setImageHistoryTick((t) => t + 1);
       return next;
     });
   };
@@ -504,15 +515,14 @@ export default function App() {
       }
       customLogoHistoryRef.current.push(prev);
       customLogoFutureRef.current = [];
-      setImageHistoryTick((t) => t + 1);
       return base64;
     });
     if (base64) {
       if (!base64.startsWith("blob:")) {
-        localStorage.setItem("kvb_custom_logo", base64);
+        lsSet("kvb_custom_logo", base64);
       }
     } else {
-      localStorage.removeItem("kvb_custom_logo");
+      lsRemove("kvb_custom_logo");
       idbDel("logo").catch(() => {});
     }
   };
@@ -523,7 +533,6 @@ export default function App() {
       if (!past.length) return prev;
       const next = past.pop() ?? "";
       customLogoFutureRef.current.push(prev);
-      setImageHistoryTick((t) => t + 1);
       return next;
     });
   };
@@ -534,7 +543,6 @@ export default function App() {
       if (!future.length) return prev;
       const next = future.pop() ?? "";
       customLogoHistoryRef.current.push(prev);
-      setImageHistoryTick((t) => t + 1);
       return next;
     });
   };
@@ -543,15 +551,15 @@ export default function App() {
   useEffect(() => {
     if (customLogo) {
       if (!customLogo.startsWith("blob:")) {
-        localStorage.setItem("kvb_custom_logo", customLogo);
+        lsSet("kvb_custom_logo", customLogo);
       }
     } else {
-      localStorage.removeItem("kvb_custom_logo");
+      lsRemove("kvb_custom_logo");
     }
   }, [customLogo]);
 
   useEffect(() => {
-    localStorage.removeItem("kvb_operator_mode_v2");
+    lsRemove("kvb_operator_mode_v2");
   }, []);
 
   // Handle toggling of Operator mode via code
@@ -584,13 +592,13 @@ export default function App() {
 
   // Keep states persistent
   useEffect(() => {
-    localStorage.setItem("kvb_lang_v2", lang);
+    lsSet("kvb_lang_v2", lang);
   }, [lang]);
 
   useEffect(() => {
     try {
       const currentStr = JSON.stringify(prizes);
-      localStorage.setItem("kvb_prizes_v3", currentStr);
+      lsSet("kvb_prizes_v3", currentStr);
       if (isFirebaseLoaded && currentStr !== lastCloudDocs.current.prizes) {
         lastCloudDocs.current.prizes = currentStr;
         const firestorePrizes = prizes.map(stripBase64FromPrize);
@@ -602,11 +610,11 @@ export default function App() {
   }, [prizes, isFirebaseLoaded]);
 
   useEffect(() => {
-    localStorage.setItem("kvb_draws_v2", JSON.stringify(recentDraws));
+    lsSet("kvb_draws_v2", JSON.stringify(recentDraws));
   }, [recentDraws]);
 
   useEffect(() => {
-    localStorage.setItem(
+    lsSet(
       "kvb_current_user_v2",
       JSON.stringify(currentParticipant),
     );
@@ -614,7 +622,7 @@ export default function App() {
 
   useEffect(() => {
     const currentStr = JSON.stringify(riskConfig);
-    localStorage.setItem("kvb_risk_v2", currentStr);
+    lsSet("kvb_risk_v2", currentStr);
     if (isFirebaseLoaded && currentStr !== lastCloudDocs.current.riskConfig) {
       lastCloudDocs.current.riskConfig = currentStr;
       saveGlobalSettings({ riskConfig });
@@ -623,7 +631,7 @@ export default function App() {
 
   useEffect(() => {
     const currentStr = JSON.stringify(metrics);
-    localStorage.setItem("kvb_metrics_v2", currentStr);
+    lsSet("kvb_metrics_v2", currentStr);
     if (isFirebaseLoaded && currentStr !== lastCloudDocs.current.metrics) {
       lastCloudDocs.current.metrics = currentStr;
       saveGlobalSettings({ metrics });
@@ -631,7 +639,7 @@ export default function App() {
   }, [metrics, isFirebaseLoaded]);
 
   useEffect(() => {
-    localStorage.setItem(
+    lsSet(
       "kvb_user_has_drawn_v2",
       userHasDrawn ? "true" : "false",
     );
@@ -639,7 +647,7 @@ export default function App() {
 
   useEffect(() => {
     const currentStr = JSON.stringify(sheetsConfig);
-    localStorage.setItem("kvb_sheets_config_v2", currentStr);
+    lsSet("kvb_sheets_config_v2", currentStr);
     if (isFirebaseLoaded && currentStr !== lastCloudDocs.current.sheetsConfig) {
       lastCloudDocs.current.sheetsConfig = currentStr;
       saveGlobalSettings({ sheetsConfig });
@@ -697,14 +705,14 @@ export default function App() {
 
   // Reset the database & offline logs to clean slate
   const handleResetDatabase = () => {
-    localStorage.removeItem("kvb_prizes_v3");
-    localStorage.removeItem("kvb_draws_v2");
-    localStorage.removeItem("kvb_current_user_v2");
-    localStorage.removeItem("kvb_user_has_drawn_v2");
-    localStorage.removeItem("kvb_metrics_v2");
-    localStorage.removeItem("kvb_risk_v2");
-    localStorage.removeItem("kvb_sheets_config_v2");
-    localStorage.removeItem("kvb_invitation_codes_v2");
+    lsRemove("kvb_prizes_v3");
+    lsRemove("kvb_draws_v2");
+    lsRemove("kvb_current_user_v2");
+    lsRemove("kvb_user_has_drawn_v2");
+    lsRemove("kvb_metrics_v2");
+    lsRemove("kvb_risk_v2");
+    lsRemove("kvb_sheets_config_v2");
+    lsRemove("kvb_invitation_codes_v2");
 
     if (resultRevealTimerRef.current !== null) {
       window.clearTimeout(resultRevealTimerRef.current);
@@ -778,7 +786,6 @@ export default function App() {
     customLogoHistoryRef.current = [];
     customLogoFutureRef.current = [];
     prizeImageHistoryRef.current = {};
-    setImageHistoryTick((t) => t + 1);
 
     if (isFirebaseLoaded) {
       saveGlobalSettings({
@@ -844,8 +851,7 @@ export default function App() {
           ] = { past: [], future: [] });
         entry.past.push(prevVal);
         entry.future = [];
-        setImageHistoryTick((t) => t + 1);
-        return { ...p, customImageBase64: base64 };
+          return { ...p, customImageBase64: base64 };
       }),
     );
   };
@@ -869,8 +875,7 @@ export default function App() {
       return prev.map((p) => {
         if (p.id !== prizeId) return p;
         entry.future.push(p.customImageBase64 || "");
-        setImageHistoryTick((t) => t + 1);
-        return { ...p, customImageBase64: next };
+          return { ...p, customImageBase64: next };
       });
     });
   };
@@ -883,8 +888,7 @@ export default function App() {
       return prev.map((p) => {
         if (p.id !== prizeId) return p;
         entry.past.push(p.customImageBase64 || "");
-        setImageHistoryTick((t) => t + 1);
-        return { ...p, customImageBase64: next };
+          return { ...p, customImageBase64: next };
       });
     });
   };
@@ -1233,6 +1237,46 @@ export default function App() {
     }
   };
 
+  const prizeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of prizes) map.set(p.id, p.label);
+    return map;
+  }, [prizes]);
+
+  const marqueeWinners = useMemo(() => {
+    const top = recentDraws
+      .filter((d) => d.status === "SUCCESS")
+      .slice(0, 10);
+    const doubled = [...top, ...top];
+    return doubled.map((draw, i) => {
+      const wonLabel = prizeMap.get(draw.prizeId) || draw.prizeLabel;
+      return (
+        <div
+          key={draw.id + "-" + i}
+          className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 hover:bg-slate-800 transition-colors"
+        >
+          <div className="flex flex-col text-left">
+            <span className="font-bold text-slate-200 font-sans">
+              {maskName(draw.participantName)}
+            </span>
+            <span className="text-slate-500 text-[10px] mt-0.5">
+              {maskWhatsapp(draw.participantWhatsapp)} • Code{" "}
+              {maskCode(draw.participantKtp)}
+            </span>
+          </div>
+          <div className="text-right flex flex-col shrink-0 pl-2">
+            <span className="text-blue-600 font-bold font-display text-xs">
+              {wonLabel}
+            </span>
+            <span className="text-[9px] text-slate-500 font-mono mt-0.5">
+              {draw.timestamp} WIB
+            </span>
+          </div>
+        </div>
+      );
+    });
+  }, [recentDraws, prizeMap]);
+
   return (
     <div
       className={`min-h-screen relative overflow-x-hidden text-slate-100 flex flex-col font-sans select-none antialiased bg-transparent`}
@@ -1354,42 +1398,7 @@ export default function App() {
                 <div className="absolute bottom-0 w-full h-8 bg-gradient-to-t from-zinc-950/85 to-transparent"></div>
               </div>
               <div className="font-mono text-[11px] animate-marquee-vertical hover:[animation-play-state:paused] flex flex-col gap-2.5">
-                {[
-                  ...recentDraws
-                    .filter((d) => d.status === "SUCCESS")
-                    .slice(0, 10),
-                  ...recentDraws
-                    .filter((d) => d.status === "SUCCESS")
-                    .slice(0, 10),
-                ].map((draw, i) => {
-                  const prizeObj = prizes.find((pr) => pr.id === draw.prizeId);
-                  const wonLabel = prizeObj ? prizeObj.label : draw.prizeLabel;
-
-                  return (
-                    <div
-                      key={draw.id + "-" + i}
-                      className="flex justify-between items-center bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 hover:bg-slate-800 transition-colors"
-                    >
-                      <div className="flex flex-col text-left">
-                        <span className="font-bold text-slate-200 font-sans">
-                          {maskName(draw.participantName)}
-                        </span>
-                        <span className="text-slate-500 text-[10px] mt-0.5">
-                          {maskWhatsapp(draw.participantWhatsapp)} • Code{" "}
-                          {maskCode(draw.participantKtp)}
-                        </span>
-                      </div>
-                      <div className="text-right flex flex-col shrink-0 pl-2">
-                        <span className="text-blue-600 font-bold font-display text-xs">
-                          {wonLabel}
-                        </span>
-                        <span className="text-[9px] text-slate-500 font-mono mt-0.5">
-                          {draw.timestamp} WIB
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                {marqueeWinners}
               </div>
             </div>
           </div>
