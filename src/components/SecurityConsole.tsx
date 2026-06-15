@@ -34,8 +34,10 @@ import { TRANSLATIONS, GET_APPSCRIPT_TEMPLATE } from "../translations";
 import {
   compressImageFileToDataUrl,
   validateImageUploadFile,
+  compressImageFileToBlob,
 } from "../utils/images";
 import { idbSet } from "../utils/persist";
+import { uploadBgToStorage, uploadLogoToStorage } from "../firebaseStorage";
 
 interface SecurityConsoleProps {
   prizes: Prize[];
@@ -1104,7 +1106,13 @@ export default function SecurityConsole({
                           try {
                             const blobUrl = URL.createObjectURL(file);
                             onUpdateCustomBg?.(blobUrl);
-                            idbSet("bg", file).catch(() => {});
+                            compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 })
+                              .then((compressed) => {
+                                idbSet("bg", compressed).catch(() => {});
+                                return uploadBgToStorage(compressed);
+                              })
+                              .then((cloudUrl) => { onUpdateCustomBg?.(cloudUrl); })
+                              .catch(() => {});
                           } catch {
                             setBgUploadError(lang === "zh" ? "图片读取失败" : "Gagal membaca gambar");
                           }
@@ -1190,17 +1198,21 @@ export default function SecurityConsole({
                         const file = e.target.files?.[0];
                         e.target.value = "";
                         if (!file) return;
-                        void handleImageUpload({
-                          file,
-                          maxFileSizeBytes: 2 * 1024 * 1024,
-                          compression: {
-                            maxWidth: 600,
-                            maxHeight: 200,
-                            mimeType: "image/webp",
-                            quality: 0.9,
-                          },
-                          onSuccess: (dataUrl) => onUpdateCustomLogo?.(dataUrl),
-                        });
+                        void (async () => {
+                          setLogoUploadError(null);
+                          const validation = validateImageUploadFile(file, { maxFileSizeBytes: 5 * 1024 * 1024, allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"] });
+                          if (!validation.ok) { setLogoUploadError(validation.error ?? "Invalid"); return; }
+                          try {
+                            const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
+                            const blobUrl = URL.createObjectURL(blob);
+                            onUpdateCustomLogo?.(blobUrl);
+                            uploadLogoToStorage(blob)
+                              .then((cloudUrl) => { onUpdateCustomLogo?.(cloudUrl); })
+                              .catch(() => {});
+                          } catch {
+                            setLogoUploadError(lang === "zh" ? "Logo 读取失败" : "Gagal membaca logo");
+                          }
+                        })();
                       }}
                     />
                     {lang === "zh" ? "⬆️ 浏览并上传 Logo" : "⬆️ Unggah Logo"}

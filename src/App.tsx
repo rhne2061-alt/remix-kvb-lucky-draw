@@ -287,6 +287,7 @@ export default function App() {
   
   const [customBg, setCustomBgRaw] = useState<string>("");
   const customBgBlobRef = useRef<string | null>(null);
+  const customBgCloudRef = useRef<string | null>(null);
 
   useEffect(() => {
     idbGet("bg").then((blob) => {
@@ -307,17 +308,21 @@ export default function App() {
   >({});
   const [imageHistoryTick, setImageHistoryTick] = useState(0);
 
-  const handleUpdateCustomBg = (blobUrl: string) => {
-    if (customBgBlobRef.current && customBgBlobRef.current !== blobUrl) {
+  const handleUpdateCustomBg = (url: string) => {
+    if (customBgBlobRef.current && customBgBlobRef.current !== url && !url.startsWith("blob:")) {
       URL.revokeObjectURL(customBgBlobRef.current);
     }
-    customBgBlobRef.current = blobUrl;
+    if (url.startsWith("blob:")) {
+      customBgBlobRef.current = url;
+    } else {
+      customBgCloudRef.current = url;
+    }
     setCustomBgRaw((prev) => {
-      if (prev === blobUrl) return prev;
+      if (prev === url) return prev;
       customBgHistoryRef.current.push(prev);
       customBgFutureRef.current = [];
       setImageHistoryTick((t) => t + 1);
-      return blobUrl;
+      return url;
     });
   };
 
@@ -344,7 +349,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (customBg) {
+    if (customBg && customBg.startsWith("blob:")) {
       fetch(customBg)
         .then((r) => r.blob())
         .then((blob) => idbSet("bg", blob))
@@ -401,7 +406,11 @@ export default function App() {
         lastCloudDocs.current.customBg = data.customBg;
         setCustomBgRaw((prev) => {
           if (prev && !data.customBg) return prev;
-          if (prev.startsWith("blob:")) return prev;
+          if (prev && data.customBg && customBgCloudRef.current === data.customBg) return prev;
+          if (prev.startsWith("blob:") && !data.customBg.startsWith("https://")) return prev;
+          if (data.customBg.startsWith("https://")) {
+            customBgCloudRef.current = data.customBg;
+          }
           return prev === data.customBg ? prev : data.customBg;
         });
       }
@@ -409,6 +418,7 @@ export default function App() {
         lastCloudDocs.current.customLogo = data.customLogo;
         setCustomLogoRaw((prev) => {
           if (prev && !data.customLogo) return prev;
+          if (prev.startsWith("blob:") && !data.customLogo.startsWith("https://")) return prev;
           return prev === data.customLogo ? prev : data.customLogo;
         });
       }
@@ -576,7 +586,7 @@ export default function App() {
   }, [customBg, isFirebaseLoaded]);
   
   useEffect(() => {
-    if (isFirebaseLoaded && customLogo !== lastCloudDocs.current.customLogo) {
+    if (isFirebaseLoaded && customLogo && !customLogo.startsWith("blob:") && !customLogo.startsWith("data:") && customLogo !== lastCloudDocs.current.customLogo) {
       lastCloudDocs.current.customLogo = customLogo;
       saveGlobalSettings({ customLogo });
     }

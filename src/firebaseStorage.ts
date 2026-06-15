@@ -3,25 +3,6 @@ import { app, shouldEnableFirebase } from "./firebase";
 
 const getStore = () => getStorage(app);
 
-export async function uploadPrizeImageToStorage(
-  base64: string,
-  prizeId: string,
-  kind: "thumb" | "large",
-): Promise<string> {
-  if (!shouldEnableFirebase()) {
-    throw new Error("Firebase not enabled");
-  }
-
-  const blob = dataUrlToBlob(base64);
-  const storage = getStore();
-  const path = `prizes/${prizeId}/${kind}.webp`;
-  const storageRef = ref(storage, path);
-
-  await uploadBytesResumable(storageRef, blob);
-  const url = await getDownloadURL(storageRef);
-  return url;
-}
-
 function dataUrlToBlob(dataUrl: string): Blob {
   const parts = dataUrl.split(",");
   const mime = parts[0]?.match(/:(.*?);/)?.[1] ?? "image/webp";
@@ -32,4 +13,33 @@ function dataUrlToBlob(dataUrl: string): Blob {
     u8[i] = bstr.charCodeAt(i);
   }
   return new Blob([u8], { type: mime });
+}
+
+export async function uploadPrizeImageToStorage(
+  base64: string,
+  prizeId: string,
+  kind: "thumb" | "large",
+): Promise<string> {
+  if (!shouldEnableFirebase()) throw new Error("Firebase not enabled");
+  const blob = dataUrlToBlob(base64);
+  const storage = getStore();
+  const path = `prizes/${prizeId}/${kind}.webp`;
+  await uploadBytesResumable(ref(storage, path), blob);
+  return await getDownloadURL(ref(storage, path));
+}
+
+export async function uploadBgToStorage(blob: Blob): Promise<string> {
+  if (!shouldEnableFirebase()) throw new Error("Firebase not enabled");
+  const storage = getStore();
+  const path = "bg/bg.webp";
+  await uploadBytesResumable(ref(storage, path), blob);
+  return await getDownloadURL(ref(storage, path));
+}
+
+export async function uploadLogoToStorage(blob: Blob): Promise<string> {
+  if (!shouldEnableFirebase()) throw new Error("Firebase not enabled");
+  const storage = getStore();
+  const path = "logo/logo.png";
+  await uploadBytesResumable(ref(storage, path), blob);
+  return await getDownloadURL(ref(storage, path));
 }

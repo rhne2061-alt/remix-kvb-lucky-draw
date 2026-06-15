@@ -68,11 +68,25 @@ export async function compressImageFileToDataUrl(
   options: ImageCompressionOptions,
 ): Promise<string> {
   const src = await readFileAsDataUrl(file);
+  return compressDataUrl(src, options);
+}
+
+export async function compressDataUrl(
+  src: string,
+  options: ImageCompressionOptions,
+): Promise<string> {
   const img = await loadImage(src);
+  const { width, height } = calcSize(img.width, img.height, options);
+  return canvasToDataUrl(img, width, height, options);
+}
 
-  let width = img.width;
-  let height = img.height;
-
+function calcSize(
+  iw: number,
+  ih: number,
+  options: ImageCompressionOptions,
+): { width: number; height: number } {
+  let width = iw;
+  let height = ih;
   const maxWidth = options.maxWidth;
   const maxHeight = options.maxHeight;
   const maxSize = options.maxSize;
@@ -97,14 +111,42 @@ export async function compressImageFileToDataUrl(
     height = maxHeight;
   }
 
+  return { width: Math.max(1, width), height: Math.max(1, height) };
+}
+
+function canvasToDataUrl(
+  img: HTMLImageElement,
+  width: number,
+  height: number,
+  options: ImageCompressionOptions,
+): string {
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, width);
-  canvas.height = Math.max(1, height);
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
+  ctx.drawImage(img, 0, 0, width, height);
   const mimeType = options.mimeType ?? "image/webp";
   const quality = options.quality ?? 0.9;
   return canvas.toDataURL(mimeType, quality);
+}
+
+export async function compressImageFileToBlob(
+  file: File,
+  options: ImageCompressionOptions,
+): Promise<Blob> {
+  const dataUrl = await compressImageFileToDataUrl(file, options);
+  return dataUrlToBlob(dataUrl);
+}
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const parts = dataUrl.split(",");
+  const mime = parts[0]?.match(/:(.*?);/)?.[1] ?? "image/webp";
+  const bstr = atob(parts[1]);
+  const n = bstr.length;
+  const u8 = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    u8[i] = bstr.charCodeAt(i);
+  }
+  return new Blob([u8], { type: mime });
 }
