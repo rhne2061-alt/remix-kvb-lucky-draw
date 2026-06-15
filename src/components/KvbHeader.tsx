@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShieldCheck, Calendar, Activity, Languages } from 'lucide-react';
 import { TRANSLATIONS } from '../translations';
 
@@ -9,12 +9,18 @@ interface KvbHeaderProps {
 
 export default function KvbHeader({ lang = 'id', customLogo }: KvbHeaderProps) {
   const t = TRANSLATIONS[lang];
+  const [logoError, setLogoError] = useState(false);
 
-  if (customLogo) {
+  if (customLogo && !logoError) {
     return (
       <header id="kvb-header" className="bg-white/5 backdrop-blur-sm border-b border-white/10 px-6 py-3 md:py-4 sticky top-0 z-50 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] select-none transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-center md:justify-start">
-          <img src={customLogo} alt="Custom Header Logo" className="max-h-[70px] w-auto object-contain" />
+          <img
+            src={customLogo}
+            alt="Custom Header Logo"
+            className="max-h-[70px] w-auto object-contain"
+            onError={() => setLogoError(true)}
+          />
         </div>
       </header>
     );

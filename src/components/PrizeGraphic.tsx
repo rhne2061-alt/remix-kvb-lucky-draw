@@ -65,6 +65,7 @@ export function PrizeGraphic({
     [customImageBase64, imageUrl],
   );
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const isFailed = !!displayImageSrc && failedSrc === displayImageSrc;
   const frameClass = emphasize
     ? "prize-frame animate-prize-pulse"
@@ -76,12 +77,20 @@ export function PrizeGraphic({
         className={`relative overflow-hidden ${frameClass} ${className}`}
         style={style}
       >
+        {!imgLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/50">
+            <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-br from-white/18 via-transparent to-transparent pointer-events-none" />
         <img
           src={displayImageSrc}
           alt="Hadiah"
-          className="w-full h-full object-contain p-3 [filter:brightness(1.08)_contrast(1.06)_saturate(1.08)_drop-shadow(0_12px_24px_rgba(15,23,42,0.35))]"
+          className={`w-full h-full object-contain p-3 [filter:brightness(1.08)_contrast(1.06)_saturate(1.08)_drop-shadow(0_12px_24px_rgba(15,23,42,0.35))] ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setImgLoaded(true)}
           onError={() => setFailedSrc(displayImageSrc)}
+          loading="lazy"
+          decoding="async"
         />
       </div>
     );

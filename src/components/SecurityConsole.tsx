@@ -199,6 +199,8 @@ export default function SecurityConsole({
     type: "error";
     message: string;
   } | null>(null);
+  const [bgUploading, setBgUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   // High-value prizes to display stock control
   const highValuePrizes = prizes.filter((p) =>
@@ -1104,6 +1106,7 @@ export default function SecurityConsole({
                           const validation = validateImageUploadFile(file, { maxFileSizeBytes: 30 * 1024 * 1024, allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/avif", "image/bmp"] });
                           if (!validation.ok) { setBgUploadError(validation.error ?? "Invalid"); return; }
                           try {
+                            setBgUploading(true);
                             const blobUrl = URL.createObjectURL(file);
                             onUpdateCustomBg?.(blobUrl);
                             compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 })
@@ -1112,14 +1115,23 @@ export default function SecurityConsole({
                                 return uploadBgToStorage(compressed);
                               })
                               .then((cloudUrl) => { onUpdateCustomBg?.(cloudUrl); })
-                              .catch(() => {});
+                              .catch(() => {})
+                              .finally(() => { setBgUploading(false); });
                           } catch {
+                            setBgUploading(false);
                             setBgUploadError(lang === "zh" ? "图片读取失败" : "Gagal membaca gambar");
                           }
                         })();
                       }}
                     />
-                    {lang === "zh" ? "⬆️ 浏览并上传背景" : "⬆️ Unggah Background"}
+                    {bgUploading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                        {lang === "zh" ? "上传中..." : "Mengunggah..."}
+                      </span>
+                    ) : (
+                      lang === "zh" ? "⬆️ 浏览并上传背景" : "⬆️ Unggah Background"
+                    )}
                   </label>
                   {onUndoCustomBg && (
                     <button
@@ -1203,19 +1215,29 @@ export default function SecurityConsole({
                           const validation = validateImageUploadFile(file, { maxFileSizeBytes: 5 * 1024 * 1024, allowedMimeTypes: ["image/png", "image/jpeg", "image/webp"] });
                           if (!validation.ok) { setLogoUploadError(validation.error ?? "Invalid"); return; }
                           try {
+                            setLogoUploading(true);
                             const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
                             const blobUrl = URL.createObjectURL(blob);
                             onUpdateCustomLogo?.(blobUrl);
                             uploadLogoToStorage(blob)
                               .then((cloudUrl) => { onUpdateCustomLogo?.(cloudUrl); })
-                              .catch(() => {});
+                              .catch(() => {})
+                              .finally(() => { setLogoUploading(false); });
                           } catch {
+                            setLogoUploading(false);
                             setLogoUploadError(lang === "zh" ? "Logo 读取失败" : "Gagal membaca logo");
                           }
                         })();
                       }}
                     />
-                    {lang === "zh" ? "⬆️ 浏览并上传 Logo" : "⬆️ Unggah Logo"}
+                    {logoUploading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="w-3 h-3 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                        {lang === "zh" ? "上传中..." : "Mengunggah..."}
+                      </span>
+                    ) : (
+                      lang === "zh" ? "⬆️ 浏览并上传 Logo" : "⬆️ Unggah Logo"
+                    )}
                   </label>
                   {onUndoCustomLogo && (
                     <button
