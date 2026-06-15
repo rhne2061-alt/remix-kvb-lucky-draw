@@ -37,7 +37,7 @@ import {
   compressImageFileToBlob,
 } from "../utils/images";
 import { idbSet } from "../utils/persist";
-import { uploadBgToStorage, uploadLogoToStorage } from "../firebaseStorage";
+import { uploadBgToCloudinary, uploadLogoToCloudinary } from "../cloudinary";
 
 interface SecurityConsoleProps {
   prizes: Prize[];
@@ -1112,7 +1112,7 @@ export default function SecurityConsole({
                             compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 })
                               .then((compressed) => {
                                 idbSet("bg", compressed).catch(() => {});
-                                return uploadBgToStorage(compressed);
+                                return uploadBgToCloudinary(compressed);
                               })
                               .then((cloudUrl) => { onUpdateCustomBg?.(cloudUrl); })
                               .catch(() => {})
@@ -1219,7 +1219,7 @@ export default function SecurityConsole({
                             const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
                             const blobUrl = URL.createObjectURL(blob);
                             onUpdateCustomLogo?.(blobUrl);
-                            uploadLogoToStorage(blob)
+                            uploadLogoToCloudinary(blob)
                               .then((cloudUrl) => { onUpdateCustomLogo?.(cloudUrl); })
                               .catch(() => {})
                               .finally(() => { setLogoUploading(false); });

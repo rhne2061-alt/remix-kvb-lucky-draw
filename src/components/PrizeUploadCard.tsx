@@ -3,7 +3,7 @@ import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
 import { compressImageFileToDataUrl, validateImageUploadFile } from "../utils/images";
-import { uploadPrizeImageToStorage } from "../firebaseStorage";
+import { uploadPrizeToCloudinary } from "../cloudinary";
 
 interface PrizeUploadCardProps {
   prize: Prize;
@@ -71,7 +71,7 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
       }
       setUploading(null);
 
-      uploadPrizeImageToStorage(dataUrl, prize.id, kind)
+      uploadPrizeToCloudinary(dataUrl, prize.id)
         .then((cloudUrl) => {
           if (kind === "thumb") {
             onUpload(cloudUrl);
