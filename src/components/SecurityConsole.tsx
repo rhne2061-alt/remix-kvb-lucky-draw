@@ -456,7 +456,7 @@ export default function SecurityConsole({
             )}
           </span>
         </div>
-        <div className="p-4 border-r border-e0 sm:border-r border-zinc-800 flex flex-col">
+        <div className="p-4 border-r border-zinc-800 flex flex-col">
           <span className="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">
             {t.successfulDraws}
           </span>
@@ -657,7 +657,7 @@ export default function SecurityConsole({
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={handleGenerateRandomLocal}
-                      className="w-full bg-gradient-to-r from-amber-500/80 to-amber-600/80 hover:from-amber-600 hover:to-amber-755 text-slate-950 text-xs py-2.5 px-4 rounded-xl font-black cursor-pointer transition-all active:scale-97 flex items-center justify-center gap-2"
+                      className="w-full bg-gradient-to-r from-amber-500/80 to-amber-600/80 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs py-2.5 px-4 rounded-xl font-black cursor-pointer transition-all active:scale-97 flex items-center justify-center gap-2"
                     >
                       <Key className="h-4 w-4 shrink-0" />
                       <span>
@@ -1040,7 +1040,7 @@ export default function SecurityConsole({
                       className="hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       {isCopied ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-405" />
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}

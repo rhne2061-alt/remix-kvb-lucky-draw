@@ -1366,7 +1366,7 @@ export default function App() {
           <div className="flex items-center gap-2 text-left">
             <span className="font-bold text-slate-400">KVB Global Markets</span>
             <span className="text-slate-600">|</span>
-            <span className="text-slate-405">
+            <span className="text-slate-400">
               Regulated Broker A++ Grade 2026
             </span>
           </div>
