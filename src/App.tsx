@@ -33,6 +33,7 @@ import { syncSingleDrawToSheets } from "./utils/sheets";
 import ConfettiEffect from "./components/ConfettiEffect";
 import { PrizeGraphic } from "./components/PrizeGraphic";
 import { subscribeToGlobalSettings, saveGlobalSettings, subscribeToDraws, saveDraw } from "./firebase";
+import { idbGet, idbSet } from "./utils/persist";
 
 // =========================================================================
 // 💡 全局默认配置（全局同步器）：如果您已经拿到了 Google Apps Script 网页应用连接（即 /exec 结尾的长链接）
@@ -284,9 +285,18 @@ export default function App() {
   const [operatorPinInput, setOperatorPinInput] = useState<string>("");
   const [loginError, setLoginError] = useState<string>("");
   
-  const [customBg, setCustomBgRaw] = useState<string>(() => {
-    return localStorage.getItem("kvb_custom_bg") || "";
-  });
+  const [customBg, setCustomBgRaw] = useState<string>("");
+  const customBgBlobRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    idbGet("bg").then((blob) => {
+      if (blob instanceof Blob) {
+        const url = URL.createObjectURL(blob);
+        customBgBlobRef.current = url;
+        setCustomBgRaw(url);
+      }
+    }).catch(() => {});
+  }, []);
 
   const customBgHistoryRef = useRef<string[]>([]);
   const customBgFutureRef = useRef<string[]>([]);
@@ -297,19 +307,18 @@ export default function App() {
   >({});
   const [imageHistoryTick, setImageHistoryTick] = useState(0);
 
-  const handleUpdateCustomBg = (base64: string) => {
+  const handleUpdateCustomBg = (blobUrl: string) => {
+    if (customBgBlobRef.current && customBgBlobRef.current !== blobUrl) {
+      URL.revokeObjectURL(customBgBlobRef.current);
+    }
+    customBgBlobRef.current = blobUrl;
     setCustomBgRaw((prev) => {
-      if (prev === base64) return prev;
+      if (prev === blobUrl) return prev;
       customBgHistoryRef.current.push(prev);
       customBgFutureRef.current = [];
       setImageHistoryTick((t) => t + 1);
-      return base64;
+      return blobUrl;
     });
-    if (base64) {
-      localStorage.setItem("kvb_custom_bg", base64);
-    } else {
-      localStorage.removeItem("kvb_custom_bg");
-    }
   };
 
   const handleUndoCustomBg = () => {
@@ -336,9 +345,10 @@ export default function App() {
 
   useEffect(() => {
     if (customBg) {
-      localStorage.setItem("kvb_custom_bg", customBg);
-    } else {
-      localStorage.removeItem("kvb_custom_bg");
+      fetch(customBg)
+        .then((r) => r.blob())
+        .then((blob) => idbSet("bg", blob))
+        .catch(() => {});
     }
   }, [customBg]);
 
@@ -391,6 +401,7 @@ export default function App() {
         lastCloudDocs.current.customBg = data.customBg;
         setCustomBgRaw((prev) => {
           if (prev && !data.customBg) return prev;
+          if (prev.startsWith("blob:")) return prev;
           return prev === data.customBg ? prev : data.customBg;
         });
       }
@@ -558,7 +569,7 @@ export default function App() {
   }, [sheetsConfig, isFirebaseLoaded]);
 
   useEffect(() => {
-    if (isFirebaseLoaded && customBg !== lastCloudDocs.current.customBg) {
+    if (isFirebaseLoaded && customBg && !customBg.startsWith("blob:") && customBg !== lastCloudDocs.current.customBg) {
       lastCloudDocs.current.customBg = customBg;
       saveGlobalSettings({ customBg });
     }

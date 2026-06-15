@@ -34,8 +34,8 @@ import { TRANSLATIONS, GET_APPSCRIPT_TEMPLATE } from "../translations";
 import {
   compressImageFileToDataUrl,
   validateImageUploadFile,
-  readFileAsDataUrl,
 } from "../utils/images";
+import { idbSet } from "../utils/persist";
 
 interface SecurityConsoleProps {
   prizes: Prize[];
@@ -1102,8 +1102,9 @@ export default function SecurityConsole({
                           const validation = validateImageUploadFile(file, { maxFileSizeBytes: 30 * 1024 * 1024, allowedMimeTypes: ["image/png", "image/jpeg", "image/webp", "image/avif", "image/bmp"] });
                           if (!validation.ok) { setBgUploadError(validation.error ?? "Invalid"); return; }
                           try {
-                            const dataUrl = await readFileAsDataUrl(file);
-                            onUpdateCustomBg?.(dataUrl);
+                            const blobUrl = URL.createObjectURL(file);
+                            onUpdateCustomBg?.(blobUrl);
+                            idbSet("bg", file).catch(() => {});
                           } catch {
                             setBgUploadError(lang === "zh" ? "图片读取失败" : "Gagal membaca gambar");
                           }
