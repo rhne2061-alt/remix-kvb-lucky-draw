@@ -1,5 +1,5 @@
-const CLOUD_NAME = "dhdhpnvn9";
-const UPLOAD_PRESET = "ml_default";
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "dhdhpnvn9";
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "ml_default";
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const parts = dataUrl.split(",");

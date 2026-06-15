@@ -33,7 +33,7 @@ import { syncSingleDrawToSheets } from "./utils/sheets";
 import ConfettiEffect from "./components/ConfettiEffect";
 import { PrizeGraphic } from "./components/PrizeGraphic";
 import { subscribeToGlobalSettings, saveGlobalSettings, subscribeToDraws, saveDraw } from "./firebase";
-import { idbGet, idbSet } from "./utils/persist";
+import { idbGet, idbSet, idbDel } from "./utils/persist";
 
 // =========================================================================
 // 💡 全局默认配置（全局同步器）：如果您已经拿到了 Google Apps Script 网页应用连接（即 /exec 结尾的长链接）
@@ -312,7 +312,11 @@ export default function App() {
     if (customBgBlobRef.current && customBgBlobRef.current !== url && !url.startsWith("blob:")) {
       URL.revokeObjectURL(customBgBlobRef.current);
     }
-    if (url.startsWith("blob:")) {
+    if (!url) {
+      idbDel("bg").catch(() => {});
+      customBgBlobRef.current = null;
+      customBgCloudRef.current = null;
+    } else if (url.startsWith("blob:")) {
       customBgBlobRef.current = url;
     } else {
       customBgCloudRef.current = url;
@@ -699,6 +703,7 @@ export default function App() {
 
     setCustomBgRaw("");
     setCustomLogoRaw("");
+    idbDel("bg").catch(() => {});
     customBgHistoryRef.current = [];
     customBgFutureRef.current = [];
     customLogoHistoryRef.current = [];
