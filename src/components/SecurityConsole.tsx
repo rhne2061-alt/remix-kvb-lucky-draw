@@ -1107,19 +1107,14 @@ export default function SecurityConsole({
                           if (!validation.ok) { setBgUploadError(validation.error ?? "Invalid"); return; }
                           try {
                             setBgUploading(true);
-                            const blobUrl = URL.createObjectURL(file);
-                            onUpdateCustomBg?.(blobUrl);
-                            compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 })
-                              .then((compressed) => {
-                                idbSet("bg", compressed).catch(() => {});
-                                return uploadBgToCloudinary(compressed);
-                              })
-                              .then((cloudUrl) => { onUpdateCustomBg?.(cloudUrl); })
-                              .catch(() => {})
-                              .finally(() => { setBgUploading(false); });
+                            const compressed = await compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 });
+                            idbSet("bg", compressed).catch(() => {});
+                            const cloudUrl = await uploadBgToCloudinary(compressed);
+                            onUpdateCustomBg?.(cloudUrl);
                           } catch {
+                            setBgUploadError(lang === "zh" ? "背景上传失败" : "Gagal mengunggah background");
+                          } finally {
                             setBgUploading(false);
-                            setBgUploadError(lang === "zh" ? "图片读取失败" : "Gagal membaca gambar");
                           }
                         })();
                       }}
@@ -1217,15 +1212,12 @@ export default function SecurityConsole({
                           try {
                             setLogoUploading(true);
                             const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
-                            const blobUrl = URL.createObjectURL(blob);
-                            onUpdateCustomLogo?.(blobUrl);
-                            uploadLogoToCloudinary(blob)
-                              .then((cloudUrl) => { onUpdateCustomLogo?.(cloudUrl); })
-                              .catch(() => {})
-                              .finally(() => { setLogoUploading(false); });
+                            const cloudUrl = await uploadLogoToCloudinary(blob);
+                            onUpdateCustomLogo?.(cloudUrl);
                           } catch {
+                            setLogoUploadError(lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo");
+                          } finally {
                             setLogoUploading(false);
-                            setLogoUploadError(lang === "zh" ? "Logo 读取失败" : "Gagal membaca logo");
                           }
                         })();
                       }}
