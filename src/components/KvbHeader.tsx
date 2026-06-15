@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Calendar, Activity, Languages } from 'lucide-react';
 import { TRANSLATIONS } from '../translations';
 
@@ -10,6 +10,10 @@ interface KvbHeaderProps {
 export default function KvbHeader({ lang = 'id', customLogo }: KvbHeaderProps) {
   const t = TRANSLATIONS[lang];
   const [logoError, setLogoError] = useState(false);
+
+  useEffect(() => {
+    setLogoError(false);
+  }, [customLogo]);
 
   if (customLogo && !logoError) {
     return (
