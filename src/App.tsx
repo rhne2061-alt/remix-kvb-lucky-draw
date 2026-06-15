@@ -497,18 +497,23 @@ export default function App() {
   const handleUpdateCustomLogo = (base64: string) => {
     setCustomLogoRaw((prev) => {
       if (prev === base64) return prev;
+      // 清除旧 blob URL 防止泄漏
+      if (!base64 && logoBlobRef.current) {
+        URL.revokeObjectURL(logoBlobRef.current);
+        logoBlobRef.current = null;
+      }
       customLogoHistoryRef.current.push(prev);
       customLogoFutureRef.current = [];
       setImageHistoryTick((t) => t + 1);
       return base64;
     });
-    // blob URL 是临时的，只保存到 IndexedDB，不写 localStorage
     if (base64) {
       if (!base64.startsWith("blob:")) {
         localStorage.setItem("kvb_custom_logo", base64);
       }
     } else {
       localStorage.removeItem("kvb_custom_logo");
+      idbDel("logo").catch(() => {});
     }
   };
 
@@ -763,6 +768,11 @@ export default function App() {
     setCustomBgRaw("");
     setCustomLogoRaw("");
     idbDel("bg").catch(() => {});
+    idbDel("logo").catch(() => {});
+    INITIAL_PRIZES.forEach((p) => {
+      idbDel(`prize_img_thumb_${p.id}`).catch(() => {});
+      idbDel(`prize_img_large_${p.id}`).catch(() => {});
+    });
     customBgHistoryRef.current = [];
     customBgFutureRef.current = [];
     customLogoHistoryRef.current = [];
@@ -820,6 +830,9 @@ export default function App() {
   };
 
   const handleUpdatePrizeImage = (prizeId: string, base64: string) => {
+    if (!base64) {
+      idbDel(`prize_img_thumb_${prizeId}`).catch(() => {});
+    }
     setPrizes((prev) =>
       prev.map((p) => {
         if (p.id !== prizeId) return p;
@@ -838,6 +851,9 @@ export default function App() {
   };
 
   const handleUpdatePrizeLargeImage = (prizeId: string, base64: string) => {
+    if (!base64) {
+      idbDel(`prize_img_large_${prizeId}`).catch(() => {});
+    }
     setPrizes((prev) =>
       prev.map((p) =>
         p.id !== prizeId ? p : { ...p, customImageLargeBase64: base64 },
