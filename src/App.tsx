@@ -87,10 +87,10 @@ const maskCode = (code: string) => {
 
 const stripBase64FromPrize = (p: Prize): Prize => {
   const cleaned = { ...p };
-  if (cleaned.customImageBase64?.startsWith("data:")) {
+  if (cleaned.customImageBase64?.startsWith("data:") || cleaned.customImageBase64?.startsWith("blob:")) {
     cleaned.customImageBase64 = undefined;
   }
-  if (cleaned.customImageLargeBase64?.startsWith("data:")) {
+  if (cleaned.customImageLargeBase64?.startsWith("data:") || cleaned.customImageLargeBase64?.startsWith("blob:")) {
     cleaned.customImageLargeBase64 = undefined;
   }
   return cleaned;
@@ -380,7 +380,10 @@ export default function App() {
             const restored = { ...firebasePrize };
             const mergeImg = (cloudVal: string | undefined, localVal: string | undefined) => {
               if (!cloudVal && localVal) return localVal;
-              if (cloudVal?.startsWith("data:") && localVal?.startsWith("https://")) return localVal;
+              if (cloudVal?.startsWith("data:") || cloudVal?.startsWith("blob:")) {
+                if (localVal?.startsWith("https://")) return localVal;
+                return localVal || undefined;
+              }
               return cloudVal || localVal || undefined;
             };
             restored.customImageBase64 = mergeImg(firebasePrize.customImageBase64, local?.customImageBase64);

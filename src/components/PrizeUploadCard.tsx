@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
-import { compressImageFileToBlob, validateImageUploadFile } from "../utils/images";
-import { uploadPrizeToCloudinary } from "../cloudinary";
+import { compressImageFileToDataUrl, validateImageUploadFile } from "../utils/images";
+import { uploadPrizeImageToStorage } from "../firebaseStorage";
 
 interface PrizeUploadCardProps {
   prize: Prize;
@@ -58,33 +58,31 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
     setUploading(kind);
     try {
       const maxSize = kind === "thumb" ? 256 : 1024;
-      const blob = await compressImageFileToBlob(file, {
+      const dataUrl = await compressImageFileToDataUrl(file, {
         maxSize,
         mimeType: "image/webp",
         quality: kind === "thumb" ? 0.88 : 0.92,
       });
-      const blobUrl = URL.createObjectURL(blob);
 
       if (kind === "thumb") {
-        onUpload(blobUrl);
+        onUpload(dataUrl);
       } else {
-        onUploadLarge(blobUrl);
+        onUploadLarge(dataUrl);
       }
-      setUploading(null);
 
-      uploadPrizeToCloudinary(blob, prize.id)
-        .then((cloudUrl) => {
-          if (kind === "thumb") {
-            onUpload(cloudUrl);
-          } else {
-            onUploadLarge(cloudUrl);
-          }
-        })
-        .catch(() => {});
+      const cloudUrl = await uploadPrizeImageToStorage(dataUrl, prize.id, kind);
+      if (cloudUrl) {
+        if (kind === "thumb") {
+          onUpload(cloudUrl);
+        } else {
+          onUploadLarge(cloudUrl);
+        }
+      }
     } catch {
       const msg = lang === "zh" ? "图片处理失败，请换一张图片重试" : "Gagal memproses gambar. Coba lagi.";
       setLocalError(msg);
       onUploadError(msg);
+    } finally {
       setUploading(null);
     }
   };
