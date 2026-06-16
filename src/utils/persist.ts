@@ -45,31 +45,12 @@ export async function idbDel(key: string): Promise<void> {
   });
 }
 
-// 防抖 localStorage 写入：将多次写入合并到下一个宏任务，减少主线程阻塞
-const _pending = new Map<string, string>();
-let _timer: ReturnType<typeof setTimeout> | null = null;
+// 同步写入 localStorage（数据量极小，不会阻塞 UI）
 export function lsSet(key: string, value: string): void {
-  _pending.set(key, value);
-  if (_timer === null) {
-    _timer = setTimeout(() => {
-      for (const [k, v] of _pending) {
-        try { localStorage.setItem(k, v); } catch {}
-      }
-      _pending.clear();
-      _timer = null;
-    }, 0);
+  try { localStorage.setItem(key, value); } catch (e) {
+    console.warn("localStorage write failed", key, e);
   }
 }
 export function lsRemove(key: string): void {
-  _pending.delete(key);
-  if (_timer === null) {
-    _timer = setTimeout(() => {
-      for (const [k, v] of _pending) {
-        try { localStorage.setItem(k, v); } catch {}
-      }
-      _pending.clear();
-      _timer = null;
-    }, 0);
-  }
-  try { localStorage.removeItem(key); } catch {}
+  try { localStorage.removeItem(key); } catch {} 
 }
