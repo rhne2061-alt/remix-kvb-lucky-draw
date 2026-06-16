@@ -1144,6 +1144,10 @@ export default function SecurityConsole({
                               setBgUploadError(errMsg || (lang === "zh" ? "背景上传失败" : "Gagal mengunggah background"));
                             }
                           } finally {
+                            if (pendingBgBlobUrlRef.current) {
+                              URL.revokeObjectURL(pendingBgBlobUrlRef.current);
+                              pendingBgBlobUrlRef.current = null;
+                            }
                             setBgUploading(false);
                           }
                         })();
@@ -1278,6 +1282,10 @@ export default function SecurityConsole({
                               setLogoUploadError(errMsg || (lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo"));
                             }
                           } finally {
+                            if (pendingLogoBlobUrlRef.current) {
+                              URL.revokeObjectURL(pendingLogoBlobUrlRef.current);
+                              pendingLogoBlobUrlRef.current = null;
+                            }
                             setLogoUploading(false);
                           }
                         })();

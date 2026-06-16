@@ -116,6 +116,10 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
       setLocalError(msg);
       onUploadError(msg);
     } finally {
+      if (pendingBlobUrlRef.current) {
+        URL.revokeObjectURL(pendingBlobUrlRef.current);
+        pendingBlobUrlRef.current = null;
+      }
       setUploading(null);
     }
   };

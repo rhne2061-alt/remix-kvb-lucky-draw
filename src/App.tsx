@@ -359,16 +359,23 @@ export default function App() {
     Record<string, { past: string[]; future: string[] }>
   >({});
   const handleUpdateCustomBg = (url: string) => {
-    if (customBgBlobRef.current && customBgBlobRef.current !== url && !url.startsWith("blob:")) {
-      URL.revokeObjectURL(customBgBlobRef.current);
-    }
     if (!url) {
+      if (customBgBlobRef.current) {
+        URL.revokeObjectURL(customBgBlobRef.current);
+        customBgBlobRef.current = null;
+      }
       idbDel("bg").catch(() => {});
-      customBgBlobRef.current = null;
       customBgCloudRef.current = null;
     } else if (url.startsWith("blob:")) {
+      if (customBgBlobRef.current && customBgBlobRef.current !== url) {
+        URL.revokeObjectURL(customBgBlobRef.current);
+      }
       customBgBlobRef.current = url;
     } else {
+      if (customBgBlobRef.current) {
+        URL.revokeObjectURL(customBgBlobRef.current);
+        customBgBlobRef.current = null;
+      }
       customBgCloudRef.current = url;
     }
     setCustomBgRaw((prev) => {
@@ -848,6 +855,9 @@ export default function App() {
         if (p.id !== prizeId) return p;
         const prevVal = p.customImageBase64 || "";
         if (prevVal === base64) return p;
+        if (!base64 && prevVal.startsWith("blob:")) {
+          URL.revokeObjectURL(prevVal);
+        }
         const entry =
           prizeImageHistoryRef.current[prizeId] ?? (prizeImageHistoryRef.current[
             prizeId
@@ -864,9 +874,14 @@ export default function App() {
       idbDel(`prize_img_large_${prizeId}`).catch(() => {});
     }
     setPrizes((prev) =>
-      prev.map((p) =>
-        p.id !== prizeId ? p : { ...p, customImageLargeBase64: base64 },
-      ),
+      prev.map((p) => {
+        if (p.id !== prizeId) return p;
+        const prevVal = p.customImageLargeBase64 || "";
+        if (!base64 && prevVal.startsWith("blob:")) {
+          URL.revokeObjectURL(prevVal);
+        }
+        return { ...p, customImageLargeBase64: base64 };
+      }),
     );
   };
 
