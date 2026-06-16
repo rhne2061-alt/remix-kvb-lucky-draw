@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
-import { compressImageFileToDataUrl, validateImageUploadFile } from "../utils/images";
-import { uploadPrizeImageToStorage } from "../firebaseStorage";
+import { compressImageFileToBlob, validateImageUploadFile } from "../utils/images";
+import { uploadPrizeToCloudinary, isCloudinaryConfigured } from "../cloudinary";
+import { idbSet } from "../utils/persist";
 
 interface PrizeUploadCardProps {
   prize: Prize;
@@ -36,6 +37,7 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
 }) => {
   const [uploading, setUploading] = useState<"thumb" | "large" | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
+  const pendingBlobUrlRef = useRef<string | null>(null);
 
   const handleUpload = (kind: "thumb" | "large") => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,28 +60,59 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
     setUploading(kind);
     try {
       const maxSize = kind === "thumb" ? 256 : 1024;
-      const dataUrl = await compressImageFileToDataUrl(file, {
+      const blob = await compressImageFileToBlob(file, {
         maxSize,
         mimeType: "image/webp",
         quality: kind === "thumb" ? 0.88 : 0.92,
       });
 
+      const dbKey = kind === "thumb" ? `prize_img_thumb_${prize.id}` : `prize_img_large_${prize.id}`;
+      idbSet(dbKey, blob).catch(() => {});
+
+      const blobUrl = URL.createObjectURL(blob);
+      pendingBlobUrlRef.current = blobUrl;
+
       if (kind === "thumb") {
-        onUpload(dataUrl);
+        onUpload(blobUrl);
       } else {
-        onUploadLarge(dataUrl);
+        onUploadLarge(blobUrl);
       }
 
-      const cloudUrl = await uploadPrizeImageToStorage(dataUrl, prize.id, kind);
-      if (cloudUrl) {
-        if (kind === "thumb") {
-          onUpload(cloudUrl);
-        } else {
-          onUploadLarge(cloudUrl);
+      let finalUrl: string;
+      if (isCloudinaryConfigured()) {
+        try {
+          finalUrl = await uploadPrizeToCloudinary(blob, prize.id);
+        } catch {
+          finalUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result));
+            reader.onerror = () => reject(new Error("blob read failed"));
+            reader.readAsDataURL(blob);
+          });
         }
+      } else {
+        finalUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error("blob read failed"));
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      if (pendingBlobUrlRef.current) {
+        URL.revokeObjectURL(pendingBlobUrlRef.current);
+        pendingBlobUrlRef.current = null;
+      }
+
+      if (kind === "thumb") {
+        onUpload(finalUrl);
+      } else {
+        onUploadLarge(finalUrl);
       }
     } catch {
-      const msg = lang === "zh" ? "图片处理失败，请换一张图片重试" : "Gagal memproses gambar. Coba lagi.";
+      const msg = lang === "zh"
+        ? "图片处理失败，请换一张图片重试"
+        : "Gagal memproses gambar. Coba lagi.";
       setLocalError(msg);
       onUploadError(msg);
     } finally {

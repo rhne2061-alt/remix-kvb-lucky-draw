@@ -44,3 +44,13 @@ export async function idbDel(key: string): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+// 同步写入 localStorage（数据量极小，不会阻塞 UI）
+export function lsSet(key: string, value: string): void {
+  try { localStorage.setItem(key, value); } catch (e) {
+    console.warn("localStorage write failed", key, e);
+  }
+}
+export function lsRemove(key: string): void {
+  try { localStorage.removeItem(key); } catch {} 
+}

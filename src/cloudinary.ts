@@ -1,5 +1,17 @@
-const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || "dhdhpnvn9";
-const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || "ml_default";
+const CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+export function isCloudinaryConfigured(): boolean {
+  return !!CLOUD_NAME && !!UPLOAD_PRESET;
+}
+
+export function getCloudinaryConfigError(): string {
+  if (!CLOUD_NAME && !UPLOAD_PRESET) {
+    return "请在 .env 文件中设置 VITE_CLOUDINARY_CLOUD_NAME 和 VITE_CLOUDINARY_UPLOAD_PRESET";
+  }
+  if (!CLOUD_NAME) return "请在 .env 文件中设置 VITE_CLOUDINARY_CLOUD_NAME";
+  return "请在 .env 文件中设置 VITE_CLOUDINARY_UPLOAD_PRESET";
+}
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const parts = dataUrl.split(",");
@@ -17,6 +29,9 @@ export async function uploadToCloudinary(
   file: Blob | string,
   folder: string,
 ): Promise<string> {
+  if (!isCloudinaryConfigured()) {
+    throw new Error(getCloudinaryConfigError());
+  }
   const formData = new FormData();
   const blob = typeof file === "string" ? dataUrlToBlob(file) : file;
   formData.append("file", blob);
@@ -28,7 +43,10 @@ export async function uploadToCloudinary(
     { method: "POST", body: formData },
   );
 
-  if (!res.ok) throw new Error("Cloudinary upload failed");
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "unknown");
+    throw new Error(`Cloudinary 上传失败 (${res.status}): ${errText}`);
+  }
   const data = await res.json();
   return data.secure_url;
 }

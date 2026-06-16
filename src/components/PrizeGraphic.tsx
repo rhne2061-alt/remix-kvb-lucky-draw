@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Award,
   Coins,
@@ -66,6 +66,20 @@ export function PrizeGraphic({
   );
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const prevSrcRef = useRef<string | undefined>(undefined);
+
+  useEffect(() => {
+    const prev = prevSrcRef.current;
+    prevSrcRef.current = displayImageSrc;
+    if (!displayImageSrc) return;
+    // blob→cloud 或 cloud→cloud 属于升级，跳过 spinner 直接等新图加载
+    if (prev && displayImageSrc !== prev) {
+      return;
+    }
+    setImgLoaded(false);
+    setFailedSrc(null);
+  }, [displayImageSrc]);
+
   const isFailed = !!displayImageSrc && failedSrc === displayImageSrc;
   const frameClass = emphasize
     ? "prize-frame animate-prize-pulse"
@@ -86,10 +100,9 @@ export function PrizeGraphic({
         <img
           src={displayImageSrc}
           alt="Hadiah"
-          className={`w-full h-full object-contain p-3 [filter:brightness(1.08)_contrast(1.06)_saturate(1.08)_drop-shadow(0_12px_24px_rgba(15,23,42,0.35))] ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-full h-full object-contain p-3 [filter:brightness(1.08)_contrast(1.06)_saturate(1.08)_drop-shadow(0_12px_24px_rgba(15,23,42,0.35))] transition-opacity duration-200 ${imgLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setImgLoaded(true)}
           onError={() => setFailedSrc(displayImageSrc)}
-          loading="lazy"
           decoding="async"
         />
       </div>

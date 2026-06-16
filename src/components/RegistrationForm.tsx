@@ -7,7 +7,7 @@ import {
   RefreshCw,
   AlertTriangle,
 } from "lucide-react";
-import { Participant } from "../types";
+import { Participant, DrawResult } from "../types";
 import { audio } from "../utils/audio";
 import { TRANSLATIONS } from "../translations";
 
@@ -15,7 +15,7 @@ interface RegistrationFormProps {
   onSubmit: (participant: Participant) => void;
   onLogout: () => void;
   currentParticipant: Participant | null;
-  blockedDetails: { isBlocked: boolean; reason?: string } | null;
+  blockedDetails: DrawResult | null;
   lang: "zh" | "id";
   invitationCodes: {
     code: string;
@@ -166,14 +166,14 @@ export default function RegistrationForm({
           </div>
         </div>
 
-        {blockedDetails?.isBlocked && (
+        {blockedDetails?.status === "BLOCKED" && (
           <div className="mt-4 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-600 text-xs text-left">
             <div className="font-bold flex items-center gap-1.5 mb-1.5 text-rose-600">
               <AlertTriangle className="h-4 w-4 shrink-0" />
               <span>⚠️ PENCEGAHAN ANTI-FRAUD TERPIDIKSI</span>
             </div>
             <p className="leading-relaxed text-[11px] opacity-90">
-              {blockedDetails.reason}
+              {blockedDetails.blockReason}
             </p>
           </div>
         )}

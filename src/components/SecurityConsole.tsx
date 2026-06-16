@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   ShieldAlert,
   Database,
@@ -35,9 +35,10 @@ import {
   compressImageFileToDataUrl,
   validateImageUploadFile,
   compressImageFileToBlob,
+  blobToDataUrl,
 } from "../utils/images";
 import { idbSet } from "../utils/persist";
-import { uploadBgToCloudinary, uploadLogoToCloudinary } from "../cloudinary";
+import { uploadBgToCloudinary, uploadLogoToCloudinary, isCloudinaryConfigured, getCloudinaryConfigError } from "../cloudinary";
 
 interface SecurityConsoleProps {
   prizes: Prize[];
@@ -201,6 +202,10 @@ export default function SecurityConsole({
   } | null>(null);
   const [bgUploading, setBgUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+
+  // 用于追踪本地 blob URL，上传成功后释放，防止内存泄漏和闪烁
+  const pendingBgBlobUrlRef = useRef<string | null>(null);
+  const pendingLogoBlobUrlRef = useRef<string | null>(null);
 
   // High-value prizes to display stock control
   const highValuePrizes = prizes.filter((p) =>
@@ -456,7 +461,7 @@ export default function SecurityConsole({
             )}
           </span>
         </div>
-        <div className="p-4 border-r border-e0 sm:border-r border-zinc-800 flex flex-col">
+        <div className="p-4 border-r border-zinc-800 flex flex-col">
           <span className="text-[10px] text-zinc-400 font-mono tracking-wider uppercase">
             {t.successfulDraws}
           </span>
@@ -657,7 +662,7 @@ export default function SecurityConsole({
                   <div className="flex flex-col gap-2">
                     <button
                       onClick={handleGenerateRandomLocal}
-                      className="w-full bg-gradient-to-r from-amber-500/80 to-amber-600/80 hover:from-amber-600 hover:to-amber-755 text-slate-950 text-xs py-2.5 px-4 rounded-xl font-black cursor-pointer transition-all active:scale-97 flex items-center justify-center gap-2"
+                      className="w-full bg-gradient-to-r from-amber-500/80 to-amber-600/80 hover:from-amber-600 hover:to-amber-700 text-slate-950 text-xs py-2.5 px-4 rounded-xl font-black cursor-pointer transition-all active:scale-97 flex items-center justify-center gap-2"
                     >
                       <Key className="h-4 w-4 shrink-0" />
                       <span>
@@ -1040,7 +1045,7 @@ export default function SecurityConsole({
                       className="hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       {isCopied ? (
-                        <Check className="h-3.5 w-3.5 text-emerald-405" />
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
@@ -1109,10 +1114,35 @@ export default function SecurityConsole({
                             setBgUploading(true);
                             const compressed = await compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 });
                             idbSet("bg", compressed).catch(() => {});
-                            const cloudUrl = await uploadBgToCloudinary(compressed);
-                            onUpdateCustomBg?.(cloudUrl);
-                          } catch {
-                            setBgUploadError(lang === "zh" ? "背景上传失败" : "Gagal mengunggah background");
+
+                            // 先显示本地 blob 预览
+                            const blobUrl = URL.createObjectURL(compressed);
+                            pendingBgBlobUrlRef.current = blobUrl;
+                            onUpdateCustomBg?.(blobUrl);
+
+                            let bgUrl: string;
+                            if (isCloudinaryConfigured()) {
+                              try {
+                                bgUrl = await uploadBgToCloudinary(compressed);
+                              } catch {
+                                bgUrl = await blobToDataUrl(compressed);
+                              }
+                            } else {
+                              bgUrl = await blobToDataUrl(compressed);
+                            }
+
+                            if (pendingBgBlobUrlRef.current) {
+                              URL.revokeObjectURL(pendingBgBlobUrlRef.current);
+                              pendingBgBlobUrlRef.current = null;
+                            }
+                            onUpdateCustomBg?.(bgUrl);
+                          } catch (e) {
+                            const errMsg = e instanceof Error ? e.message : "";
+                            if (!isCloudinaryConfigured()) {
+                              setBgUploadError(`⚠️ ${getCloudinaryConfigError()}`);
+                            } else {
+                              setBgUploadError(errMsg || (lang === "zh" ? "背景上传失败" : "Gagal mengunggah background"));
+                            }
                           } finally {
                             setBgUploading(false);
                           }
@@ -1175,9 +1205,13 @@ export default function SecurityConsole({
                   {bgUploadError}
                 </p>
               )}
-              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center realtive">
+              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center relative">
                 {customBg ? (
-                  <img src={customBg} alt="background preview" className="w-full h-full object-cover opacity-80" />
+                  <img
+                    src={customBg}
+                    alt="background preview"
+                    className="w-full h-full object-cover opacity-80 transition-opacity duration-500"
+                  />
                 ) : (
                   <span className="text-zinc-600 font-bold text-sm tracking-widest uppercase">
                     {lang === "zh" ? "暂无背景预览" : "TIDAK ADA PREVIEW"}
@@ -1212,10 +1246,37 @@ export default function SecurityConsole({
                           try {
                             setLogoUploading(true);
                             const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
-                            const cloudUrl = await uploadLogoToCloudinary(blob);
-                            onUpdateCustomLogo?.(cloudUrl);
-                          } catch {
-                            setLogoUploadError(lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo");
+                            // 保存到 IndexedDB，保证刷新后 Logo 不丢失
+                            idbSet("logo", blob).catch(() => {});
+
+                            // 先显示本地 blob 预览
+                            const blobUrl = URL.createObjectURL(blob);
+                            pendingLogoBlobUrlRef.current = blobUrl;
+                            onUpdateCustomLogo?.(blobUrl);
+
+                            let logoUrl: string;
+                            if (isCloudinaryConfigured()) {
+                              try {
+                                logoUrl = await uploadLogoToCloudinary(blob);
+                              } catch {
+                                logoUrl = await blobToDataUrl(blob);
+                              }
+                            } else {
+                              logoUrl = await blobToDataUrl(blob);
+                            }
+
+                            if (pendingLogoBlobUrlRef.current) {
+                              URL.revokeObjectURL(pendingLogoBlobUrlRef.current);
+                              pendingLogoBlobUrlRef.current = null;
+                            }
+                            onUpdateCustomLogo?.(logoUrl);
+                          } catch (e) {
+                            const errMsg = e instanceof Error ? e.message : "";
+                            if (!isCloudinaryConfigured()) {
+                              setLogoUploadError(`⚠️ Logo 已保存。${getCloudinaryConfigError()}`);
+                            } else {
+                              setLogoUploadError(errMsg || (lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo"));
+                            }
                           } finally {
                             setLogoUploading(false);
                           }
@@ -1273,9 +1334,13 @@ export default function SecurityConsole({
                   )}
                 </div>
               </div>
-              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center realtive">
+              <div className="w-full sm:w-64 h-32 border-2 border-dashed border-zinc-700 bg-black/50 rounded-xl overflow-hidden flex items-center justify-center relative">
                 {customLogo ? (
-                  <img src={customLogo} alt="logo preview" className="p-4 w-full h-full object-contain" />
+                  <img
+                    src={customLogo}
+                    alt="logo preview"
+                    className="p-4 w-full h-full object-contain transition-opacity duration-500"
+                  />
                 ) : (
                   <span className="text-zinc-600 font-bold text-sm tracking-widest uppercase">
                     {lang === "zh" ? "暂无 Logo 预览" : "TIDAK ADA PREVIEW"}
