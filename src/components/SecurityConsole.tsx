@@ -35,6 +35,7 @@ import {
   compressImageFileToDataUrl,
   validateImageUploadFile,
   compressImageFileToBlob,
+  blobToDataUrl,
 } from "../utils/images";
 import { idbSet } from "../utils/persist";
 import { uploadBgToCloudinary, uploadLogoToCloudinary, isCloudinaryConfigured, getCloudinaryConfigError } from "../cloudinary";
@@ -1114,19 +1115,27 @@ export default function SecurityConsole({
                             const compressed = await compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 });
                             idbSet("bg", compressed).catch(() => {});
 
-                            // 先显示本地 blob 预览，避免等待 Cloudinary 时的白屏/卡顿
+                            // 先显示本地 blob 预览
                             const blobUrl = URL.createObjectURL(compressed);
                             pendingBgBlobUrlRef.current = blobUrl;
                             onUpdateCustomBg?.(blobUrl);
 
-                            const cloudUrl = await uploadBgToCloudinary(compressed);
+                            let bgUrl: string;
+                            if (isCloudinaryConfigured()) {
+                              try {
+                                bgUrl = await uploadBgToCloudinary(compressed);
+                              } catch {
+                                bgUrl = await blobToDataUrl(compressed);
+                              }
+                            } else {
+                              bgUrl = await blobToDataUrl(compressed);
+                            }
 
-                            // 释放 blob URL 并替换为云端地址
                             if (pendingBgBlobUrlRef.current) {
                               URL.revokeObjectURL(pendingBgBlobUrlRef.current);
                               pendingBgBlobUrlRef.current = null;
                             }
-                            onUpdateCustomBg?.(cloudUrl);
+                            onUpdateCustomBg?.(bgUrl);
                           } catch (e) {
                             const errMsg = e instanceof Error ? e.message : "";
                             if (!isCloudinaryConfigured()) {
@@ -1237,7 +1246,7 @@ export default function SecurityConsole({
                           try {
                             setLogoUploading(true);
                             const blob = await compressImageFileToBlob(file, { maxWidth: 600, maxHeight: 200, mimeType: "image/webp", quality: 0.9 });
-                            // 保存到 IndexedDB，保证刷新后 Logo 不丢失（即使 Cloudinary 上传失败）
+                            // 保存到 IndexedDB，保证刷新后 Logo 不丢失
                             idbSet("logo", blob).catch(() => {});
 
                             // 先显示本地 blob 预览
@@ -1245,20 +1254,28 @@ export default function SecurityConsole({
                             pendingLogoBlobUrlRef.current = blobUrl;
                             onUpdateCustomLogo?.(blobUrl);
 
-                            const cloudUrl = await uploadLogoToCloudinary(blob);
+                            let logoUrl: string;
+                            if (isCloudinaryConfigured()) {
+                              try {
+                                logoUrl = await uploadLogoToCloudinary(blob);
+                              } catch {
+                                logoUrl = await blobToDataUrl(blob);
+                              }
+                            } else {
+                              logoUrl = await blobToDataUrl(blob);
+                            }
 
-                            // 释放 blob URL 并替换为云端地址
                             if (pendingLogoBlobUrlRef.current) {
                               URL.revokeObjectURL(pendingLogoBlobUrlRef.current);
                               pendingLogoBlobUrlRef.current = null;
                             }
-                            onUpdateCustomLogo?.(cloudUrl);
+                            onUpdateCustomLogo?.(logoUrl);
                           } catch (e) {
                             const errMsg = e instanceof Error ? e.message : "";
                             if (!isCloudinaryConfigured()) {
-                              setLogoUploadError(`⚠️ Logo 本地已保存。${getCloudinaryConfigError()}`);
+                              setLogoUploadError(`⚠️ Logo 已保存。${getCloudinaryConfigError()}`);
                             } else {
-                              setLogoUploadError(errMsg || (lang === "zh" ? "Logo 上传失败，但本地预览已保存" : "Gagal mengunggah logo, preview lokal tersimpan"));
+                              setLogoUploadError(errMsg || (lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo"));
                             }
                           } finally {
                             setLogoUploading(false);

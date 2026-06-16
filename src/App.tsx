@@ -87,10 +87,11 @@ const maskCode = (code: string) => {
 
 const stripBase64FromPrize = (p: Prize): Prize => {
   const cleaned = { ...p };
-  if (cleaned.customImageBase64?.startsWith("data:") || cleaned.customImageBase64?.startsWith("blob:")) {
+  // blob: URL 是会话级临时地址，同步到 Firebase 无意义
+  if (cleaned.customImageBase64?.startsWith("blob:")) {
     cleaned.customImageBase64 = undefined;
   }
-  if (cleaned.customImageLargeBase64?.startsWith("data:") || cleaned.customImageLargeBase64?.startsWith("blob:")) {
+  if (cleaned.customImageLargeBase64?.startsWith("blob:")) {
     cleaned.customImageLargeBase64 = undefined;
   }
   return cleaned;
@@ -662,7 +663,7 @@ export default function App() {
   }, [customBg, isFirebaseLoaded]);
   
   useEffect(() => {
-    if (isFirebaseLoaded && customLogo && !customLogo.startsWith("blob:") && !customLogo.startsWith("data:") && customLogo !== lastCloudDocs.current.customLogo) {
+    if (isFirebaseLoaded && customLogo && !customLogo.startsWith("blob:") && customLogo !== lastCloudDocs.current.customLogo) {
       lastCloudDocs.current.customLogo = customLogo;
       saveGlobalSettings({ customLogo });
     }

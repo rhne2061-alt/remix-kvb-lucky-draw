@@ -139,6 +139,15 @@ export async function compressImageFileToBlob(
   return dataUrlToBlob(dataUrl);
 }
 
+export function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Failed to read blob"));
+    reader.readAsDataURL(blob);
+  });
+}
+
 function dataUrlToBlob(dataUrl: string): Blob {
   const parts = dataUrl.split(",");
   const mime = parts[0]?.match(/:(.*?);/)?.[1] ?? "image/webp";

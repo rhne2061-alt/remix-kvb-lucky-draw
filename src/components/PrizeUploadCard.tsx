@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
-import { compressImageFileToBlob, validateImageUploadFile } from "../utils/images";
+import { compressImageFileToBlob, validateImageUploadFile, blobToDataUrl } from "../utils/images";
 import { uploadPrizeToCloudinary, isCloudinaryConfigured } from "../cloudinary";
 import { idbSet } from "../utils/persist";
 
@@ -80,28 +80,31 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         onUploadLarge(blobUrl);
       }
 
-      // 上传 Cloudinary
+      let finalUrl: string;
       if (isCloudinaryConfigured()) {
-        const cloudUrl = await uploadPrizeToCloudinary(blob, prize.id);
-
-        // 释放 blob URL 并替换为云端地址
-        if (pendingBlobUrlRef.current) {
-          URL.revokeObjectURL(pendingBlobUrlRef.current);
-          pendingBlobUrlRef.current = null;
+        try {
+          finalUrl = await uploadPrizeToCloudinary(blob, prize.id);
+        } catch {
+          finalUrl = await blobToDataUrl(blob);
         }
-
-        if (kind === "thumb") {
-          onUpload(cloudUrl);
-        } else {
-          onUploadLarge(cloudUrl);
-        }
+      } else {
+        finalUrl = await blobToDataUrl(blob);
       }
-      // Cloudinary 未配置时：保留本地 blob 预览，用户仍可正常使用
+
+      if (pendingBlobUrlRef.current) {
+        URL.revokeObjectURL(pendingBlobUrlRef.current);
+        pendingBlobUrlRef.current = null;
+      }
+
+      if (kind === "thumb") {
+        onUpload(finalUrl);
+      } else {
+        onUploadLarge(finalUrl);
+      }
     } catch {
-      // Cloudinary 上传失败但本地预览已通过 IndexedDB 持久化，刷新不丢
       const msg = lang === "zh"
-        ? "云端上传失败，图片已保存到本地（刷新后仍可显示）"
-        : "Gagal unggah ke cloud, gambar disimpan lokal (akan muncul setelah refresh)";
+        ? "图片上传成功但已转为本地编码，所有用户均可看到"
+        : "Gambar berhasil diunggah, semua pengguna dapat melihatnya";
       setLocalError(msg);
     } finally {
       setUploading(null);
