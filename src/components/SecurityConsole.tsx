@@ -32,13 +32,13 @@ import { PrizeGraphic } from "./PrizeGraphic";
 import { PrizeUploadCard } from "./PrizeUploadCard";
 import { TRANSLATIONS, GET_APPSCRIPT_TEMPLATE } from "../translations";
 import {
+  compressImageFileToBlob,
   compressImageFileToDataUrl,
   validateImageUploadFile,
-  compressImageFileToBlob,
-  blobToDataUrl,
 } from "../utils/images";
 import { idbSet } from "../utils/persist";
-import { uploadBgToCloudinary, uploadLogoToCloudinary, isCloudinaryConfigured, getCloudinaryConfigError } from "../cloudinary";
+import { uploadBgToStorage, uploadLogoToStorage } from "../firebaseStorage";
+import { shouldEnableFirebase } from "../firebase";
 
 interface SecurityConsoleProps {
   prizes: Prize[];
@@ -1115,34 +1115,21 @@ export default function SecurityConsole({
                             const compressed = await compressImageFileToBlob(file, { maxWidth: 1920, maxHeight: 1080, mimeType: "image/webp", quality: 0.9 });
                             idbSet("bg", compressed).catch(() => {});
 
-                            // 先显示本地 blob 预览
                             const blobUrl = URL.createObjectURL(compressed);
                             pendingBgBlobUrlRef.current = blobUrl;
                             onUpdateCustomBg?.(blobUrl);
 
-                            let bgUrl: string;
-                            if (isCloudinaryConfigured()) {
-                              try {
-                                bgUrl = await uploadBgToCloudinary(compressed);
-                              } catch {
-                                bgUrl = await blobToDataUrl(compressed);
+                            if (shouldEnableFirebase()) {
+                              const bgUrl = await uploadBgToStorage(compressed);
+                              if (pendingBgBlobUrlRef.current) {
+                                URL.revokeObjectURL(pendingBgBlobUrlRef.current);
+                                pendingBgBlobUrlRef.current = null;
                               }
-                            } else {
-                              bgUrl = await blobToDataUrl(compressed);
+                              onUpdateCustomBg?.(bgUrl);
                             }
-
-                            if (pendingBgBlobUrlRef.current) {
-                              URL.revokeObjectURL(pendingBgBlobUrlRef.current);
-                              pendingBgBlobUrlRef.current = null;
-                            }
-                            onUpdateCustomBg?.(bgUrl);
                           } catch (e) {
                             const errMsg = e instanceof Error ? e.message : "";
-                            if (!isCloudinaryConfigured()) {
-                              setBgUploadError(`⚠️ ${getCloudinaryConfigError()}`);
-                            } else {
-                              setBgUploadError(errMsg || (lang === "zh" ? "背景上传失败" : "Gagal mengunggah background"));
-                            }
+                            setBgUploadError(errMsg || (lang === "zh" ? "背景上传失败" : "Gagal mengunggah background"));
                           } finally {
                             if (pendingBgBlobUrlRef.current) {
                               URL.revokeObjectURL(pendingBgBlobUrlRef.current);
@@ -1258,29 +1245,17 @@ export default function SecurityConsole({
                             pendingLogoBlobUrlRef.current = blobUrl;
                             onUpdateCustomLogo?.(blobUrl);
 
-                            let logoUrl: string;
-                            if (isCloudinaryConfigured()) {
-                              try {
-                                logoUrl = await uploadLogoToCloudinary(blob);
-                              } catch {
-                                logoUrl = await blobToDataUrl(blob);
+                            if (shouldEnableFirebase()) {
+                              const logoUrl = await uploadLogoToStorage(blob);
+                              if (pendingLogoBlobUrlRef.current) {
+                                URL.revokeObjectURL(pendingLogoBlobUrlRef.current);
+                                pendingLogoBlobUrlRef.current = null;
                               }
-                            } else {
-                              logoUrl = await blobToDataUrl(blob);
+                              onUpdateCustomLogo?.(logoUrl);
                             }
-
-                            if (pendingLogoBlobUrlRef.current) {
-                              URL.revokeObjectURL(pendingLogoBlobUrlRef.current);
-                              pendingLogoBlobUrlRef.current = null;
-                            }
-                            onUpdateCustomLogo?.(logoUrl);
                           } catch (e) {
                             const errMsg = e instanceof Error ? e.message : "";
-                            if (!isCloudinaryConfigured()) {
-                              setLogoUploadError(`⚠️ Logo 已保存。${getCloudinaryConfigError()}`);
-                            } else {
-                              setLogoUploadError(errMsg || (lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo"));
-                            }
+                            setLogoUploadError(errMsg || (lang === "zh" ? "Logo 上传失败" : "Gagal mengunggah logo"));
                           } finally {
                             if (pendingLogoBlobUrlRef.current) {
                               URL.revokeObjectURL(pendingLogoBlobUrlRef.current);

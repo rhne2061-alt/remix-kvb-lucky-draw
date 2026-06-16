@@ -3,8 +3,9 @@ import { Undo2, Redo2, Upload, ImagePlus } from "lucide-react";
 import { Prize } from "../types";
 import { PrizeGraphic } from "./PrizeGraphic";
 import { compressImageFileToBlob, validateImageUploadFile } from "../utils/images";
-import { uploadPrizeToCloudinary, isCloudinaryConfigured } from "../cloudinary";
+import { uploadPrizeImageToStorage } from "../firebaseStorage";
 import { idbSet } from "../utils/persist";
+import { shouldEnableFirebase } from "../firebase";
 
 interface PrizeUploadCardProps {
   prize: Prize;
@@ -78,36 +79,19 @@ export const PrizeUploadCard: React.FC<PrizeUploadCardProps> = ({
         onUploadLarge(blobUrl);
       }
 
-      let finalUrl: string;
-      if (isCloudinaryConfigured()) {
-        try {
-          finalUrl = await uploadPrizeToCloudinary(blob, prize.id);
-        } catch {
-          finalUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result));
-            reader.onerror = () => reject(new Error("blob read failed"));
-            reader.readAsDataURL(blob);
-          });
+      if (shouldEnableFirebase()) {
+        const cloudUrl = await uploadPrizeImageToStorage(blob, prize.id, kind);
+        if (cloudUrl) {
+          if (pendingBlobUrlRef.current) {
+            URL.revokeObjectURL(pendingBlobUrlRef.current);
+            pendingBlobUrlRef.current = null;
+          }
+          if (kind === "thumb") {
+            onUpload(cloudUrl);
+          } else {
+            onUploadLarge(cloudUrl);
+          }
         }
-      } else {
-        finalUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => reject(new Error("blob read failed"));
-          reader.readAsDataURL(blob);
-        });
-      }
-
-      if (pendingBlobUrlRef.current) {
-        URL.revokeObjectURL(pendingBlobUrlRef.current);
-        pendingBlobUrlRef.current = null;
-      }
-
-      if (kind === "thumb") {
-        onUpload(finalUrl);
-      } else {
-        onUploadLarge(finalUrl);
       }
     } catch {
       const msg = lang === "zh"

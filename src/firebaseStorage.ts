@@ -16,12 +16,12 @@ function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 export async function uploadPrizeImageToStorage(
-  base64: string,
+  file: Blob | string,
   prizeId: string,
   kind: "thumb" | "large",
 ): Promise<string> {
   if (!shouldEnableFirebase()) throw new Error("Firebase not enabled");
-  const blob = dataUrlToBlob(base64);
+  const blob = typeof file === "string" ? dataUrlToBlob(file) : file;
   const storage = getStore();
   const path = `prizes/${prizeId}/${kind}.webp`;
   await uploadBytesResumable(ref(storage, path), blob);
