@@ -1,0 +1,9 @@
+{
+  "name": "okx-onchainos-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OKX OnchainOS 反向代理 - 解决沙箱网络限制",
+  "scripts": {
+    "dev": "vercel dev"
+  }
+}

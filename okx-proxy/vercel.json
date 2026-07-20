@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "public": false,
+  "github": {
+    "enabled": false
+  },
+  "functions": {
+    "api/proxy.ts": {
+      "runtime": "@vercel/edge"
+    }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/proxy.ts" },
+    { "src": "/api", "dest": "/api/proxy.ts" }
+  ]
+}

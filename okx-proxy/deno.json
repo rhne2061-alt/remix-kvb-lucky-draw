@@ -1,0 +1,7 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env main.ts",
+    "deploy": "deno deploy --project=okx-onchainos-proxy main.ts"
+  },
+  "imports": {}
+}
