@@ -1,5 +1,9 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "rewrites": [
+    { "source": "/api/okx-proxy/:path*", "destination": "/api/okx-proxy" },
+    { "source": "/api/okx-proxy", "destination": "/api/okx-proxy" }
+  ]
 }
